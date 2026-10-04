@@ -95,6 +95,21 @@
     refresh();
   }
 
+  var primarySel = document.querySelector('[data-primary-select]');
+  if (primarySel) {
+    var boxes = Array.prototype.slice.call(document.querySelectorAll('#group-list input[type=checkbox]'));
+    var firstTicked = function () {
+      var c = boxes.filter(function (b) { return b.checked && b.getAttribute('data-can-primary') === '1'; });
+      return c.length ? c[0].value : '';
+    };
+    boxes.forEach(function (b) {
+      b.addEventListener('change', function () {
+        if (b.checked && primarySel.value === '' && b.getAttribute('data-can-primary') === '1') primarySel.value = b.value;
+        else if (!b.checked && primarySel.value === b.value) primarySel.value = firstTicked();
+      });
+    });
+  }
+
   var kindRadios = document.querySelectorAll('[data-kind-radio]');
   if (kindRadios.length) {
     var syncKind = function () {

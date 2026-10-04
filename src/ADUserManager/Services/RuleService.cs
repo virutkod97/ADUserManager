@@ -73,7 +73,7 @@ public class RuleService
         await _audit.LogAsync(isNew ? "Rule.Create" : "Rule.Update", rule.Name,
             rule.IsPermission
                 ? $"Rule phân quyền; Groups: {string.Join("; ", rule.GroupDns)}"
-                : $"Rule chính; OU: {rule.OuDn}; Groups: {string.Join("; ", rule.GroupDns)}; Primary: {rule.PrimaryGroupDn ?? "Domain Users"}; Thử việc: {(rule.IsProbation ? $"có ({rule.ProbationDays} ngày)" : "không")}");
+                : $"Rule chính; OU: {rule.OuDn}; Groups: {string.Join("; ", rule.GroupDns)}; Primary: {rule.PrimaryGroupDn ?? "(tự động)"}; Thử việc: {(rule.IsProbation ? $"có ({rule.ProbationDays} ngày)" : "không")}");
     }
 
     public async Task DeleteRuleAsync(int id)
@@ -170,11 +170,13 @@ public class RuleService
             catch (AdOperationException ex) { warnings.Add(ex.Message); }
         }
 
-        if (!string.IsNullOrEmpty(rule.PrimaryGroupDn))
+        try
         {
-            try { _ad.SetPrimaryGroup(user.SamAccountName, rule.PrimaryGroupDn); }
-            catch (AdOperationException ex) { warnings.Add(ex.Message); }
+            var primary = EffectivePrimary(rule);
+            _ad.AddToGroup(user.SamAccountName, primary);
+            _ad.SetPrimaryGroup(user.SamAccountName, primary);
         }
+        catch (AdOperationException ex) { warnings.Add(ex.Message); }
 
         await UpsertAssignmentAsync(user.SamAccountName, rule.Id);
         foreach (var pr in permRules)
@@ -197,7 +199,7 @@ public class RuleService
         var oldRule = current?.Rule;
         var user = _ad.GetUser(sam) ?? throw new AdOperationException($"Không tìm thấy tài khoản '{sam}'.");
         var groupsBefore = _ad.GetUserGroups(sam);
-        var targetPrimary = string.IsNullOrEmpty(newRule.PrimaryGroupDn) ? _ad.GetDomainUsersDn() : newRule.PrimaryGroupDn;
+        var targetPrimary = EffectivePrimary(newRule);
         static string Cn(string dn) => DnHelper.RdnValue(DnHelper.Split(dn)[0]);
 
         var warnings = new List<string>();
@@ -318,6 +320,17 @@ public class RuleService
             await _db.SaveChangesAsync();
         }
         return warnings;
+    }
+
+    private IReadOnlyList<AdGroup>? _groupsCache;
+
+    // Rule đã chọn primary → dùng; chưa chọn → group Global/Universal đầu tiên của rule; không có → Domain Users
+    private string EffectivePrimary(AccountRule rule)
+    {
+        if (!string.IsNullOrEmpty(rule.PrimaryGroupDn)) return rule.PrimaryGroupDn;
+        _groupsCache ??= _ad.GetGroups();
+        var eligible = _groupsCache.Where(g => g.CanBePrimary).Select(g => g.DistinguishedName).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return rule.GroupDns.FirstOrDefault(eligible.Contains) ?? _ad.GetDomainUsersDn();
     }
 
     public async Task<List<string>> AddPermissionAsync(string sam, int ruleId)

@@ -107,16 +107,18 @@
                 <label class="check"><input type="checkbox" name="moveOu" value="true" checked /> <span>Di chuyển tài khoản sang OU của rule mới</span></label>
                 <label class="check"><input type="checkbox" name="clearGroups" value="true" checked /> <span>Gỡ toàn bộ group hiện có trước khi thêm (giữ group do rule phân quyền cấp)</span></label>
                 <label class="check"><input type="checkbox" name="addGroups" value="true" checked /> <span>Thêm vào các group của rule mới</span></label>
-                <div class="form-actions">
+                <div class="form-actions btn-pair">
                     <button type="submit" class="btn btn-primary">@(Model.Assignment is null ? "Gán rule" : "Chuyển rule")</button>
+                    @if (Model.Assignment is not null)
+                    {
+                        <button type="submit" class="btn" form="remove-rule-form">Bỏ gán rule</button>
+                    }
                 </div>
             </form>
             @if (Model.Assignment is not null)
             {
-                <form method="post" asp-page-handler="RemoveRule" asp-route-sam="@u.SamAccountName"
-                      data-confirm="Bỏ theo dõi rule cho tài khoản này? (Không thay đổi OU/group trên AD)">
-                    <button type="submit" class="btn btn-ghost btn-sm">Bỏ gán rule</button>
-                </form>
+                <form method="post" asp-page-handler="RemoveRule" asp-route-sam="@u.SamAccountName" id="remove-rule-form" hidden
+                      data-confirm="Bỏ theo dõi rule cho tài khoản này? (Không thay đổi OU/group trên AD)"></form>
             }
         </section>
 

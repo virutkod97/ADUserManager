@@ -8,5 +8,7 @@
 - Giải nén bản mới và chạy lại `install.bat`. Cấu hình và dữ liệu được giữ nguyên.
 
 ## Thay đổi trong bản này
-- Thông báo đổi rule chính rút gọn: "Đã đổi rule chính cho x/y tài khoản." Chỉ hiện chi tiết khi có lỗi.
-  Nhật ký thao tác vẫn ghi đầy đủ group đọc được / đã gỡ / primary group.
+- Primary group của rule chính mặc định lấy **group đầu tiên được tick** (Global/Universal) thay vì Domain Users;
+  bỏ tick group đó thì tự chuyển sang group được tick tiếp theo; vẫn chọn tay được (kể cả Domain Users).
+  Rule cũ chưa lưu primary group cũng dùng group hợp lệ đầu tiên của rule khi đổi rule / tạo tài khoản.
+- Trang sửa tài khoản: nút **Chuyển rule** và **Bỏ gán rule** cùng kích thước, nằm trên một hàng.

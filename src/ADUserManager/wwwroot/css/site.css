@@ -271,3 +271,4 @@ tr.row-changed { box-shadow: inset 3px 0 0 var(--warn); }
 @media (max-width: 860px) { .bulk-bar { left: 16px; right: 16px; bottom: 16px; max-width: none; } }
 .toolbar-check { align-self: center; white-space: nowrap; }
 .chip-primary { background: var(--warn-soft); color: var(--warn); font-weight: 600; }
+.btn-pair > .btn { flex: 1 1 0; max-width: 200px; }

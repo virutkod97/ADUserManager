@@ -65,7 +65,7 @@
             {
                 var isChecked = Model.Input.GroupDns.Contains(g.DistinguishedName, StringComparer.OrdinalIgnoreCase);
                 <label class="check" data-text="@g.Name.ToLowerInvariant() @(g.Description?.ToLowerInvariant())">
-                    <input type="checkbox" name="Input.GroupDns" value="@g.DistinguishedName" checked="@isChecked" />
+                    <input type="checkbox" name="Input.GroupDns" value="@g.DistinguishedName" checked="@isChecked" data-can-primary="@(g.CanBePrimary ? "1" : "0")" />
                     <span><strong>@g.Name</strong> <span class="muted small">@g.Description</span></span>
                 </label>
             }
@@ -74,14 +74,14 @@
 
     <label class="field" data-main-only>
         <span>Primary group</span>
-        <select asp-for="Input.PrimaryGroupDn">
-            <option value="">Domain Users (mặc định)</option>
-            @foreach (var g in Model.Groups.Where(g => g.CanBePrimary && g.Name != "Domain Users"))
+        <select asp-for="Input.PrimaryGroupDn" data-primary-select>
+            <option value="">Tự động: group đầu tiên được tick</option>
+            @foreach (var g in Model.Groups.Where(g => g.CanBePrimary))
             {
                 <option value="@g.DistinguishedName" selected="@(string.Equals(g.DistinguishedName, Model.Input.PrimaryGroupDn, StringComparison.OrdinalIgnoreCase))">@g.Name</option>
             }
         </select>
-        <span class="muted small">Khi tạo tài khoản hoặc đổi sang rule này, primary group của tài khoản được đặt thành group này (tự thêm vào danh sách group của rule nếu chưa tick). Chỉ group bảo mật Global/Universal.</span>
+        <span class="muted small">Mặc định lấy group đầu tiên được tick (Global/Universal); có thể chọn group khác. Khi tạo tài khoản hoặc đổi sang rule này, primary group của tài khoản được đặt thành group này. Rule không có group nào hợp lệ thì dùng Domain Users.</span>
         <span asp-validation-for="Input.PrimaryGroupDn" class="field-err"></span>
     </label>
 

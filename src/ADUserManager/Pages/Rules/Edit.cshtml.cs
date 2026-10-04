@@ -75,6 +75,13 @@ public class EditModel : AppPageModel
         return Page();
     }
 
+    private string? FirstPrimaryCandidate(IEnumerable<string> groupDns)
+    {
+        if (Groups.Count == 0) LoadLookups();
+        var eligible = Groups.Where(g => g.CanBePrimary).Select(g => g.DistinguishedName).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return groupDns.FirstOrDefault(eligible.Contains);
+    }
+
     public async Task<IActionResult> OnPostAsync()
     {
         if (Input.Kind == RuleKind.Main && string.IsNullOrWhiteSpace(Input.OuDn))
@@ -106,7 +113,9 @@ public class EditModel : AppPageModel
         rule.Description = Input.Description?.Trim();
         rule.OuDn = Input.OuDn ?? "";
         rule.GroupDns = Input.GroupDns.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-        rule.PrimaryGroupDn = string.IsNullOrWhiteSpace(Input.PrimaryGroupDn) ? null : Input.PrimaryGroupDn;
+        rule.PrimaryGroupDn = string.IsNullOrWhiteSpace(Input.PrimaryGroupDn)
+            ? FirstPrimaryCandidate(rule.GroupDns)
+            : Input.PrimaryGroupDn;
         rule.IsProbation = Input.IsProbation;
         rule.ProbationDays = Input.ProbationDays;
 
