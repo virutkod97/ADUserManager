@@ -2,9 +2,17 @@ using System.ComponentModel.DataAnnotations;
 
 namespace ADUserManager.Data;
 
+public enum RuleKind
+{
+    Main = 0,
+    Permission = 1,
+}
+
 public class AccountRule
 {
     public int Id { get; set; }
+
+    public RuleKind Kind { get; set; } = RuleKind.Main;
 
     [Required, MaxLength(100)]
     public string Name { get; set; } = "";
@@ -12,7 +20,7 @@ public class AccountRule
     [MaxLength(500)]
     public string? Description { get; set; }
 
-    [Required, MaxLength(1000)]
+    [MaxLength(1000)]
     public string OuDn { get; set; } = "";
 
     public List<string> GroupDns { get; set; } = new();
@@ -26,9 +34,29 @@ public class AccountRule
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     public List<UserRuleAssignment> Assignments { get; set; } = new();
+    public List<UserPermissionAssignment> PermissionAssignments { get; set; } = new();
+
+    public bool IsPermission => Kind == RuleKind.Permission;
+    public int UserCount => IsPermission ? PermissionAssignments.Count : Assignments.Count;
 }
 
 public class UserRuleAssignment
+{
+    public int Id { get; set; }
+
+    [Required, MaxLength(256)]
+    public string SamAccountName { get; set; } = "";
+
+    public int RuleId { get; set; }
+    public AccountRule? Rule { get; set; }
+
+    public DateTime AssignedAt { get; set; } = DateTime.UtcNow;
+
+    [MaxLength(256)]
+    public string? AssignedBy { get; set; }
+}
+
+public class UserPermissionAssignment
 {
     public int Id { get; set; }
 

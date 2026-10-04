@@ -7,7 +7,8 @@ Website chạy dạng **Windows Service** trên máy chủ Active Directory, h�
 | Chức năng | Mô tả |
 |---|---|
 | **Đăng nhập bằng tài khoản AD** | Chỉ tài khoản thuộc nhóm **Administrators** (BUILTIN\Administrators, gồm cả Domain Admins / Enterprise Admins) mới đăng nhập được. Kiểm tra thành viên đệ quy. Sai mật khẩu 5 lần trong 10 phút → chặn 5 phút. |
-| **Quản lý rule tài khoản** | Mỗi rule map tới **1 OU** và **nhiều group**. Tạo user theo rule → user được tạo trong OU đó và thêm vào các group đó. |
+| **Rule chính** | Map tới **1 OU** và **nhiều group**. Mỗi tài khoản có đúng 1 rule chính. Tạo user theo rule → user được tạo trong OU đó và thêm vào các group đó. |
+| **Rule phân quyền** | Chỉ **thêm group**, không đổi OU. Một tài khoản gán được **nhiều** rule phân quyền. VD: rule chính *Quản trị* (OU Quản trị, group IT) + rule phân quyền *Trưởng bộ phận* (group TBP) + *Pháp chế* (group Pháp chế) → tài khoản ở OU Quản trị, thuộc IT, TBP, Pháp chế. Gỡ rule chỉ gỡ các group không còn rule nào khác cấp. |
 | **Rule thử việc** | Tick "Rule thử việc" + số ngày (mặc định **7**). Hết hạn → cảnh báo ở menu (badge số), banner trên mọi trang, danh sách ở Tổng quan, đánh dấu ở danh sách tài khoản và trang chi tiết. |
 | **Chuyển rule** | Chuyển user sang rule khác: di chuyển OU, thêm group rule mới, gỡ group rule cũ (tuỳ chọn từng bước). Cũng dùng để gán rule cho tài khoản có sẵn. |
 | **Thêm / sửa / xoá tài khoản** | Tự sinh tên hiển thị và tên đăng nhập từ họ tên tiếng Việt (VD: *Nguyễn Đức Anh* → `anhnd`), chọn UPN suffix, thông tin phòng ban, chức danh, mã NV... Vô hiệu hoá/kích hoạt, mở khoá. |
@@ -20,7 +21,7 @@ Website chạy dạng **Windows Service** trên máy chủ Active Directory, h�
 
 - ASP.NET Core 8 (Razor Pages), chạy dưới dạng Windows Service (Kestrel, HTTPS).
 - Thao tác AD qua `System.DirectoryServices` / `System.DirectoryServices.AccountManagement` (LDAP có ký + mã hoá Kerberos).
-- Dữ liệu rule, gán rule, nhật ký lưu trong SQLite: `<thư mục cài đặt>\data\adusermanager.db`.
+- Dữ liệu rule, gán rule, nhật ký lưu trong SQLite: `<thư mục cài đặt>\data\adusermanager.db` (tự nâng cấp schema khi lên phiên bản mới).
 - Mọi thao tác AD chạy bằng danh tính của service (mặc định **LocalSystem** — trên Domain Controller tương đương quyền quản trị domain). Người đăng nhập web được ghi vào nhật ký thao tác.
 
 ```

@@ -14,10 +14,18 @@
         <option value="">Tất cả rule</option>
         <option value="none" selected="@(Model.RuleFilter == "none")">Chưa gán rule</option>
         <option value="due" selected="@(Model.RuleFilter == "due")">Đến hạn chuyển rule</option>
-        @foreach (var r in Model.Rules)
-        {
-            <option value="@r.Id" selected="@(Model.RuleFilter == r.Id.ToString())">@r.Name</option>
-        }
+        <optgroup label="Rule chính">
+            @foreach (var r in Model.Rules.Where(r => !r.IsPermission))
+            {
+                <option value="@r.Id" selected="@(Model.RuleFilter == r.Id.ToString())">@r.Name</option>
+            }
+        </optgroup>
+        <optgroup label="Rule phân quyền">
+            @foreach (var r in Model.Rules.Where(r => r.IsPermission))
+            {
+                <option value="@r.Id" selected="@(Model.RuleFilter == r.Id.ToString())">@r.Name</option>
+            }
+        </optgroup>
     </select>
     <button class="btn" type="submit">Lọc</button>
 </form>
@@ -57,6 +65,10 @@
                     <td>
                         @(a?.Rule?.Name ?? "—")
                         <partial name="_ProbationBadge" model="ps" />
+                        @if (Model.Permissions.GetValueOrDefault(u.SamAccountName) is { } perms)
+                        {
+                            <div>@foreach (var p in perms) { <span class="chip chip-perm" title="Rule phân quyền">@p.Rule!.Name</span> }</div>
+                        }
                     </td>
                     <td class="nowrap">
                         @if (u.Enabled) { <span class="badge badge-ok">Hoạt động</span> }

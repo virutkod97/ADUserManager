@@ -21,6 +21,8 @@ public class CreateModel : AppPageModel
         [Required(ErrorMessage = "Chọn rule")]
         public int? RuleId { get; set; }
 
+        public List<int> PermissionRuleIds { get; set; } = new();
+
         [MaxLength(64)]
         public string? Surname { get; set; }
 
@@ -96,7 +98,7 @@ public class CreateModel : AppPageModel
 
         try
         {
-            var (user, warnings) = await _rules.CreateUserAsync(req, Input.RuleId!.Value);
+            var (user, warnings) = await _rules.CreateUserAsync(req, Input.RuleId!.Value, Input.PermissionRuleIds);
             FlashSuccess($"Đã tạo tài khoản {user.SamAccountName} ({user.DisplayName}).");
             FlashWarnings(warnings);
             return RedirectToPage("Edit", new { sam = user.SamAccountName });

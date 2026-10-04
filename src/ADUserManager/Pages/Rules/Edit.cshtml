@@ -29,6 +29,21 @@
         </label>
     </div>
 
+    <div class="field">
+        <span>Loại rule</span>
+        <div class="kind-options">
+            <label class="kind-option">
+                <input type="radio" name="Input.Kind" value="Main" checked="@(Model.Input.Kind == RuleKind.Main)" data-kind-radio />
+                <span><strong>Rule chính</strong><br /><span class="muted small">Quy định OU + group. Mỗi tài khoản có đúng 1 rule chính, có thể đánh dấu thử việc.</span></span>
+            </label>
+            <label class="kind-option">
+                <input type="radio" name="Input.Kind" value="Permission" checked="@(Model.Input.Kind == RuleKind.Permission)" data-kind-radio />
+                <span><strong>Rule phân quyền</strong><br /><span class="muted small">Chỉ thêm group, không đổi OU. Một tài khoản gán được nhiều rule phân quyền.</span></span>
+            </label>
+        </div>
+    </div>
+
+    <div data-main-only>
     <label class="field">
         <span>OU đích *</span>
         <select asp-for="Input.OuDn">
@@ -40,6 +55,7 @@
         </select>
         <span asp-validation-for="Input.OuDn" class="field-err"></span>
     </label>
+    </div>
 
     <div class="field">
         <span>Group (tài khoản thuộc rule sẽ được thêm vào các group này)</span>
@@ -56,7 +72,7 @@
         </div>
     </div>
 
-    <div class="probation-box">
+    <div class="probation-box" data-main-only>
         <label class="check">
             <input type="checkbox" asp-for="Input.IsProbation" data-toggle-target="#probation-days" />
             <span><strong>Rule thử việc</strong> – nhắc chuyển rule cho tài khoản sau một số ngày</span>

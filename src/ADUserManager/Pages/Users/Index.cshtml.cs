@@ -26,6 +26,7 @@ public class IndexModel : AppPageModel
     public List<AdUser> Users { get; private set; } = new();
     public List<AccountRule> Rules { get; private set; } = new();
     public Dictionary<string, UserRuleAssignment> Assignments { get; private set; } = new();
+    public Dictionary<string, List<UserPermissionAssignment>> Permissions { get; private set; } = new();
     public bool Truncated { get; private set; }
     public string? LoadError { get; private set; }
 
@@ -33,6 +34,7 @@ public class IndexModel : AppPageModel
     {
         Rules = await _rules.GetRulesAsync();
         Assignments = await _rules.GetAssignmentsAsync();
+        Permissions = await _rules.GetPermissionAssignmentsAsync();
         try
         {
             var all = _ad.SearchUsers(Q);
@@ -43,7 +45,8 @@ public class IndexModel : AppPageModel
             else if (RuleFilter == "due")
                 users = users.Where(u => RuleService.GetProbationStatus(Assignments.GetValueOrDefault(u.SamAccountName))?.IsDue == true);
             else if (int.TryParse(RuleFilter, out var ruleId))
-                users = users.Where(u => Assignments.GetValueOrDefault(u.SamAccountName)?.RuleId == ruleId);
+                users = users.Where(u => Assignments.GetValueOrDefault(u.SamAccountName)?.RuleId == ruleId
+                                         || (Permissions.GetValueOrDefault(u.SamAccountName)?.Any(p => p.RuleId == ruleId) ?? false));
             Users = users.ToList();
         }
         catch (AdOperationException ex)

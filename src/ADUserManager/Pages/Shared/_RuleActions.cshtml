@@ -1,0 +1,6 @@
+@model AccountRule
+<a class="btn btn-sm" href="/Rules/Edit?id=@Model.Id">Sửa</a>
+<form method="post" action="/Rules?handler=Delete&amp;id=@Model.Id" class="inline" data-confirm="Xoá rule '@Model.Name'?">
+    @Html.AntiForgeryToken()
+    <button class="btn btn-sm btn-danger" type="submit">Xoá</button>
+</form>

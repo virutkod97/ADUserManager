@@ -26,7 +26,11 @@ public class RuleService
     }
 
     public Task<List<AccountRule>> GetRulesAsync() =>
-        _db.Rules.AsNoTracking().Include(r => r.Assignments).OrderBy(r => r.Name).ToListAsync();
+        _db.Rules.AsNoTracking()
+            .Include(r => r.Assignments)
+            .Include(r => r.PermissionAssignments)
+            .OrderBy(r => r.Name)
+            .ToListAsync();
 
     public Task<AccountRule?> GetRuleAsync(int id) => _db.Rules.FirstOrDefaultAsync(r => r.Id == id);
 
@@ -36,6 +40,22 @@ public class RuleService
             throw new AdOperationException($"Đã có rule tên '{rule.Name}'.");
 
         var isNew = rule.Id == 0;
+        if (!isNew)
+        {
+            var usedAsMain = await _db.Assignments.AnyAsync(a => a.RuleId == rule.Id);
+            var usedAsPermission = await _db.PermissionAssignments.AnyAsync(a => a.RuleId == rule.Id);
+            if ((rule.IsPermission && usedAsMain) || (!rule.IsPermission && usedAsPermission))
+                throw new AdOperationException("Không thể đổi loại rule khi rule đang được gán cho tài khoản.");
+        }
+        if (rule.IsPermission)
+        {
+            rule.OuDn = "";
+            rule.IsProbation = false;
+        }
+        else if (string.IsNullOrWhiteSpace(rule.OuDn))
+        {
+            throw new AdOperationException("Rule chính phải chọn OU.");
+        }
         rule.UpdatedAt = DateTime.UtcNow;
         if (isNew)
         {
@@ -44,15 +64,20 @@ public class RuleService
         }
         await _db.SaveChangesAsync();
         await _audit.LogAsync(isNew ? "Rule.Create" : "Rule.Update", rule.Name,
-            $"OU: {rule.OuDn}; Groups: {string.Join("; ", rule.GroupDns)}; Thử việc: {(rule.IsProbation ? $"có ({rule.ProbationDays} ngày)" : "không")}");
+            rule.IsPermission
+                ? $"Rule phân quyền; Groups: {string.Join("; ", rule.GroupDns)}"
+                : $"Rule chính; OU: {rule.OuDn}; Groups: {string.Join("; ", rule.GroupDns)}; Thử việc: {(rule.IsProbation ? $"có ({rule.ProbationDays} ngày)" : "không")}");
     }
 
     public async Task DeleteRuleAsync(int id)
     {
-        var rule = await _db.Rules.Include(r => r.Assignments).FirstOrDefaultAsync(r => r.Id == id)
+        var rule = await _db.Rules.Include(r => r.Assignments).Include(r => r.PermissionAssignments)
+                       .FirstOrDefaultAsync(r => r.Id == id)
                    ?? throw new AdOperationException("Rule không tồn tại.");
-        if (rule.Assignments.Count > 0)
-            throw new AdOperationException($"Rule '{rule.Name}' đang được gán cho {rule.Assignments.Count} tài khoản, hãy chuyển các tài khoản sang rule khác trước khi xoá.");
+        if (rule.UserCount > 0)
+            throw new AdOperationException(rule.IsPermission
+                ? $"Rule '{rule.Name}' đang được gán cho {rule.UserCount} tài khoản, hãy gỡ rule khỏi các tài khoản trước khi xoá."
+                : $"Rule '{rule.Name}' đang được gán cho {rule.UserCount} tài khoản, hãy chuyển các tài khoản sang rule khác trước khi xoá.");
         _db.Rules.Remove(rule);
         await _db.SaveChangesAsync();
         await _audit.LogAsync("Rule.Delete", rule.Name);
@@ -111,9 +136,13 @@ public class RuleService
         await _db.SaveChangesAsync();
     }
 
-    public async Task<(AdUser User, List<string> Warnings)> CreateUserAsync(NewUserRequest req, int ruleId)
+    public async Task<(AdUser User, List<string> Warnings)> CreateUserAsync(
+        NewUserRequest req, int ruleId, IEnumerable<int>? permissionRuleIds = null)
     {
         var rule = await GetRuleAsync(ruleId) ?? throw new AdOperationException("Rule không tồn tại.");
+        if (rule.IsPermission) throw new AdOperationException("Phải chọn rule chính khi tạo tài khoản.");
+        var permIds = (permissionRuleIds ?? Enumerable.Empty<int>()).Distinct().ToList();
+        var permRules = await _db.Rules.Where(r => permIds.Contains(r.Id) && r.Kind == RuleKind.Permission).ToListAsync();
         req.OuDn = rule.OuDn;
 
         AdUser user;
@@ -135,14 +164,19 @@ public class RuleService
         }
 
         await UpsertAssignmentAsync(user.SamAccountName, rule.Id);
+        foreach (var pr in permRules)
+            warnings.AddRange(await GrantPermissionAsync(user.SamAccountName, pr));
         await _audit.LogAsync("User.Create", user.SamAccountName,
-            $"Rule: {rule.Name}; OU: {rule.OuDn}" + (warnings.Count > 0 ? "; Cảnh báo: " + string.Join(" | ", warnings) : ""));
+            $"Rule: {rule.Name}; OU: {rule.OuDn}"
+            + (permRules.Count > 0 ? "; Phân quyền: " + string.Join(", ", permRules.Select(r => r.Name)) : "")
+            + (warnings.Count > 0 ? "; Cảnh báo: " + string.Join(" | ", warnings) : ""));
         return (user, warnings);
     }
 
     public async Task<List<string>> ChangeRuleAsync(string sam, int newRuleId, bool moveOu, bool addGroups, bool removeOldGroups)
     {
         var newRule = await GetRuleAsync(newRuleId) ?? throw new AdOperationException("Rule không tồn tại.");
+        if (newRule.IsPermission) throw new AdOperationException("Rule phân quyền được gán ở mục 'Rule phân quyền', không dùng làm rule chính.");
         var current = await GetAssignmentAsync(sam);
         var oldRule = current?.Rule;
         if (!_ad.UserExists(sam)) throw new AdOperationException($"Không tìm thấy tài khoản '{sam}'.");
@@ -155,7 +189,9 @@ public class RuleService
         }
         if (removeOldGroups && oldRule is not null)
         {
-            foreach (var g in oldRule.GroupDns.Except(newRule.GroupDns, StringComparer.OrdinalIgnoreCase))
+            var keep = new HashSet<string>(newRule.GroupDns, StringComparer.OrdinalIgnoreCase);
+            foreach (var p in await GetUserPermissionsAsync(sam)) keep.UnionWith(p.Rule!.GroupDns);
+            foreach (var g in oldRule.GroupDns.Where(g => !keep.Contains(g)))
             {
                 try { _ad.RemoveFromGroup(sam, g); }
                 catch (AdOperationException ex) { warnings.Add(ex.Message); }
@@ -190,6 +226,88 @@ public class RuleService
             throw;
         }
         await RemoveAssignmentAsync(sam);
+        _db.PermissionAssignments.RemoveRange(_db.PermissionAssignments.Where(a => a.SamAccountName == sam));
+        await _db.SaveChangesAsync();
         await _audit.LogAsync("User.Delete", sam);
+    }
+
+    public async Task<Dictionary<string, List<UserPermissionAssignment>>> GetPermissionAssignmentsAsync()
+    {
+        var list = await _db.PermissionAssignments.AsNoTracking().Include(a => a.Rule).ToListAsync();
+        return list.GroupBy(a => a.SamAccountName, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.OrderBy(a => a.Rule!.Name).ToList(), StringComparer.OrdinalIgnoreCase);
+    }
+
+    public Task<List<UserPermissionAssignment>> GetUserPermissionsAsync(string sam) =>
+        _db.PermissionAssignments.AsNoTracking().Include(a => a.Rule)
+            .Where(a => a.SamAccountName == sam)
+            .OrderBy(a => a.Rule!.Name)
+            .ToListAsync();
+
+    private async Task<List<string>> GrantPermissionAsync(string sam, AccountRule rule)
+    {
+        var warnings = new List<string>();
+        foreach (var g in rule.GroupDns)
+        {
+            try { _ad.AddToGroup(sam, g); }
+            catch (AdOperationException ex) { warnings.Add(ex.Message); }
+        }
+        if (!await _db.PermissionAssignments.AnyAsync(a => a.SamAccountName == sam && a.RuleId == rule.Id))
+        {
+            _db.PermissionAssignments.Add(new UserPermissionAssignment
+            {
+                SamAccountName = sam,
+                RuleId = rule.Id,
+                AssignedAt = DateTime.UtcNow,
+                AssignedBy = _audit.CurrentActor,
+            });
+            await _db.SaveChangesAsync();
+        }
+        return warnings;
+    }
+
+    public async Task<List<string>> AddPermissionAsync(string sam, int ruleId)
+    {
+        var rule = await GetRuleAsync(ruleId) ?? throw new AdOperationException("Rule không tồn tại.");
+        if (!rule.IsPermission) throw new AdOperationException($"'{rule.Name}' không phải rule phân quyền.");
+        if (!_ad.UserExists(sam)) throw new AdOperationException($"Không tìm thấy tài khoản '{sam}'.");
+
+        var warnings = await GrantPermissionAsync(sam, rule);
+        await _audit.LogAsync("User.AddPermission", sam,
+            $"{rule.Name}; Groups: {string.Join("; ", rule.GroupDns)}"
+            + (warnings.Count > 0 ? "; Cảnh báo: " + string.Join(" | ", warnings) : ""),
+            success: warnings.Count == 0);
+        return warnings;
+    }
+
+    public async Task<List<string>> RemovePermissionAsync(string sam, int ruleId, bool removeGroups)
+    {
+        var a = await _db.PermissionAssignments.Include(x => x.Rule)
+                    .FirstOrDefaultAsync(x => x.SamAccountName == sam && x.RuleId == ruleId)
+                ?? throw new AdOperationException("Tài khoản không có rule phân quyền này.");
+        var rule = a.Rule!;
+
+        var warnings = new List<string>();
+        if (removeGroups)
+        {
+            // Group vẫn được rule chính hoặc rule phân quyền khác cấp thì giữ lại
+            var keep = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if ((await GetAssignmentAsync(sam))?.Rule is { } main) keep.UnionWith(main.GroupDns);
+            foreach (var other in await GetUserPermissionsAsync(sam))
+                if (other.RuleId != ruleId) keep.UnionWith(other.Rule!.GroupDns);
+
+            foreach (var g in rule.GroupDns.Where(g => !keep.Contains(g)))
+            {
+                try { _ad.RemoveFromGroup(sam, g); }
+                catch (AdOperationException ex) { warnings.Add(ex.Message); }
+            }
+        }
+
+        _db.PermissionAssignments.Remove(a);
+        await _db.SaveChangesAsync();
+        await _audit.LogAsync("User.RemovePermission", sam,
+            $"{rule.Name}; Gỡ group: {removeGroups}" + (warnings.Count > 0 ? "; Cảnh báo: " + string.Join(" | ", warnings) : ""),
+            success: warnings.Count == 0);
+        return warnings;
     }
 }

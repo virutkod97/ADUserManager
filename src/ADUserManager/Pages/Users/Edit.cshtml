@@ -76,7 +76,7 @@
 
     <div class="stack">
         <section class="card" id="rule">
-            <h2>Rule tài khoản</h2>
+            <h2>Rule chính</h2>
             @if (Model.Assignment?.Rule is { } cur)
             {
                 <dl class="kv">
@@ -98,7 +98,7 @@
                     <span>@(Model.Assignment is null ? "Gán rule" : "Chuyển sang rule")</span>
                     <select name="newRuleId" required>
                         <option value="">— Chọn rule —</option>
-                        @foreach (var r in Model.Rules.Where(r => r.Id != Model.Assignment?.RuleId))
+                        @foreach (var r in Model.Rules.Where(r => !r.IsPermission && r.Id != Model.Assignment?.RuleId))
                         {
                             <option value="@r.Id">@r.Name — @DnHelper.ToPath(r.OuDn)@(r.IsProbation ? " (thử việc)" : "")</option>
                         }
@@ -108,7 +108,7 @@
                 <label class="check"><input type="checkbox" name="addGroups" value="true" checked /> <span>Thêm vào các group của rule mới</span></label>
                 @if (Model.Assignment is not null)
                 {
-                    <label class="check"><input type="checkbox" name="removeOldGroups" value="true" checked /> <span>Gỡ khỏi các group của rule cũ (không có trong rule mới)</span></label>
+                    <label class="check"><input type="checkbox" name="removeOldGroups" value="true" checked /> <span>Gỡ khỏi các group của rule cũ (trừ group mà rule mới hoặc rule phân quyền vẫn cấp)</span></label>
                 }
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary">@(Model.Assignment is null ? "Gán rule" : "Chuyển rule")</button>
@@ -120,6 +120,57 @@
                       data-confirm="Bỏ theo dõi rule cho tài khoản này? (Không thay đổi OU/group trên AD)">
                     <button type="submit" class="btn btn-ghost btn-sm">Bỏ gán rule</button>
                 </form>
+            }
+        </section>
+
+        <section class="card" id="permissions">
+            <h2>Rule phân quyền (@Model.Permissions.Count)</h2>
+            @if (Model.Permissions.Count == 0)
+            {
+                <p class="muted">Chưa gán rule phân quyền nào.</p>
+            }
+            else
+            {
+                <div class="perm-list">
+                    @foreach (var p in Model.Permissions)
+                    {
+                        <div class="perm-item">
+                            <div>
+                                <strong>@p.Rule!.Name</strong>
+                                <div class="small"><partial name="_GroupChips" model="p.Rule.GroupDns" /></div>
+                                <div class="muted small">Từ @p.AssignedAt.ToLocalDisplay() (@p.AssignedBy)</div>
+                            </div>
+                            <form method="post" asp-page-handler="RemovePermission" asp-route-sam="@u.SamAccountName" asp-route-ruleId="@p.RuleId"
+                                  data-confirm="Gỡ rule phân quyền '@p.Rule.Name' và các group của rule này khỏi @u.SamAccountName?">
+                                <button type="submit" class="btn btn-sm btn-danger">Gỡ</button>
+                            </form>
+                        </div>
+                    }
+                </div>
+            }
+            @{
+                var assignedIds = Model.Permissions.Select(p => p.RuleId).ToHashSet();
+                var available = Model.Rules.Where(r => r.IsPermission && !assignedIds.Contains(r.Id)).ToList();
+            }
+            @if (available.Count > 0)
+            {
+                <form method="post" asp-page-handler="AddPermission" asp-route-sam="@u.SamAccountName" class="form">
+                    <label class="field">
+                        <span>Thêm rule phân quyền</span>
+                        <select name="ruleId" required>
+                            <option value="">— Chọn rule phân quyền —</option>
+                            @foreach (var r in available)
+                            {
+                                <option value="@r.Id">@r.Name — + @string.Join(", ", r.GroupDns.Select(g => DnHelper.RdnValue(DnHelper.Split(g)[0])))</option>
+                            }
+                        </select>
+                    </label>
+                    <button type="submit" class="btn btn-primary">Thêm quyền</button>
+                </form>
+            }
+            else if (!Model.Rules.Any(r => r.IsPermission))
+            {
+                <p class="muted small">Chưa có rule phân quyền. <a href="/Rules/Edit?kind=Permission">Tạo rule phân quyền</a>.</p>
             }
         </section>
 

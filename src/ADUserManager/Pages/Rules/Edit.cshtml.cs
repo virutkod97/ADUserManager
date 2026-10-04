@@ -20,14 +20,15 @@ public class EditModel : AppPageModel
     {
         public int Id { get; set; }
 
+        public RuleKind Kind { get; set; } = RuleKind.Main;
+
         [Required(ErrorMessage = "Nhập tên rule"), MaxLength(100)]
         public string Name { get; set; } = "";
 
         [MaxLength(500)]
         public string? Description { get; set; }
 
-        [Required(ErrorMessage = "Chọn OU")]
-        public string OuDn { get; set; } = "";
+        public string? OuDn { get; set; }
 
         public List<string> GroupDns { get; set; } = new();
 
@@ -55,15 +56,16 @@ public class EditModel : AppPageModel
         }
     }
 
-    public async Task<IActionResult> OnGetAsync(int? id)
+    public async Task<IActionResult> OnGetAsync(int? id, RuleKind? kind)
     {
+        if (kind is not null) Input.Kind = kind.Value;
         if (id is > 0)
         {
             var r = await _rules.GetRuleAsync(id.Value);
             if (r is null) return NotFound();
             Input = new InputModel
             {
-                Id = r.Id, Name = r.Name, Description = r.Description, OuDn = r.OuDn,
+                Id = r.Id, Kind = r.Kind, Name = r.Name, Description = r.Description, OuDn = r.OuDn,
                 GroupDns = r.GroupDns.ToList(), IsProbation = r.IsProbation, ProbationDays = r.ProbationDays,
             };
         }
@@ -73,6 +75,10 @@ public class EditModel : AppPageModel
 
     public async Task<IActionResult> OnPostAsync()
     {
+        if (Input.Kind == RuleKind.Main && string.IsNullOrWhiteSpace(Input.OuDn))
+            ModelState.AddModelError("Input.OuDn", "Chọn OU");
+        if (Input.Kind == RuleKind.Permission && Input.GroupDns.Count == 0)
+            ModelState.AddModelError("", "Rule phân quyền phải có ít nhất 1 group.");
         if (!ModelState.IsValid)
         {
             LoadLookups();
@@ -86,9 +92,10 @@ public class EditModel : AppPageModel
         }
         else rule = new AccountRule();
 
+        rule.Kind = Input.Kind;
         rule.Name = Input.Name.Trim();
         rule.Description = Input.Description?.Trim();
-        rule.OuDn = Input.OuDn;
+        rule.OuDn = Input.OuDn ?? "";
         rule.GroupDns = Input.GroupDns.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         rule.IsProbation = Input.IsProbation;
         rule.ProbationDays = Input.ProbationDays;

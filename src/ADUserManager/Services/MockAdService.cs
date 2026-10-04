@@ -13,7 +13,7 @@ public sealed class MockAdService : IAdService
         _ous = new[]
         {
             $"CN=Users,{Nc}", $"OU=NPC,{Nc}", $"OU=Thu viec,OU=NPC,{Nc}", $"OU=Phong IT,OU=NPC,{Nc}",
-            $"OU=Phong Ke toan,OU=NPC,{Nc}", $"OU=Phong Kinh doanh,OU=NPC,{Nc}",
+            $"OU=Phong Ke toan,OU=NPC,{Nc}", $"OU=Phong Kinh doanh,OU=NPC,{Nc}", $"OU=Quan tri,OU=NPC,{Nc}",
         }.Select(d => new AdOu(d, DnHelper.ToPath(d))).OrderBy(o => o.Path).ToList();
 
         _groups = new (string Name, string Desc)[]
@@ -21,6 +21,7 @@ public sealed class MockAdService : IAdService
             ("Domain Admins", "Quản trị domain"), ("GRP_ThuViec", "Nhân sự thử việc"), ("GRP_Internet", "Truy cập Internet"),
             ("GRP_IT", "Phòng IT"), ("GRP_KeToan", "Phòng Kế toán"), ("GRP_KinhDoanh", "Phòng Kinh doanh"),
             ("GRP_VPN", "Truy cập VPN"), ("GRP_FileServer_RW", "Ghi file server"),
+            ("GRP_TBP", "Trưởng bộ phận"), ("GRP_PhapChe", "Pháp chế"),
         }.Select(g => new AdGroup($"CN={g.Name},OU=NPC,{Nc}", g.Name, g.Desc)).ToList();
 
         Seed("admin", "Quản trị viên", "Admin@123", $"CN=Users,{Nc}", "Domain Admins");

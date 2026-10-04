@@ -45,6 +45,7 @@ public class EditModel : AppPageModel
     public AdUser? AdUser { get; private set; }
     public UserRuleAssignment? Assignment { get; private set; }
     public List<AccountRule> Rules { get; private set; } = new();
+    public List<UserPermissionAssignment> Permissions { get; private set; } = new();
 
     private async Task<bool> LoadAsync(string sam, bool fillInput)
     {
@@ -64,6 +65,7 @@ public class EditModel : AppPageModel
         }
         Assignment = await _rules.GetAssignmentAsync(AdUser.SamAccountName);
         Rules = await _rules.GetRulesAsync();
+        Permissions = await _rules.GetUserPermissionsAsync(AdUser.SamAccountName);
         if (fillInput)
         {
             Input = new InputModel
@@ -131,6 +133,43 @@ public class EditModel : AppPageModel
             FlashError(ex.Message);
         }
         return Back(sam);
+    }
+
+    public async Task<IActionResult> OnPostAddPermissionAsync(string sam, int? ruleId)
+    {
+        if (ruleId is null)
+        {
+            FlashError("Chọn rule phân quyền.");
+            return Back(sam);
+        }
+        try
+        {
+            var warnings = await _rules.AddPermissionAsync(sam, ruleId.Value);
+            var rule = await _rules.GetRuleAsync(ruleId.Value);
+            FlashSuccess($"Đã thêm rule phân quyền '{rule?.Name}' cho {sam}.");
+            FlashWarnings(warnings);
+        }
+        catch (AdOperationException ex)
+        {
+            FlashError(ex.Message);
+        }
+        return RedirectToPage(null, null, new { sam }, "permissions");
+    }
+
+    public async Task<IActionResult> OnPostRemovePermissionAsync(string sam, int ruleId)
+    {
+        try
+        {
+            var rule = await _rules.GetRuleAsync(ruleId);
+            var warnings = await _rules.RemovePermissionAsync(sam, ruleId, removeGroups: true);
+            FlashSuccess($"Đã gỡ rule phân quyền '{rule?.Name}' khỏi {sam}.");
+            FlashWarnings(warnings);
+        }
+        catch (AdOperationException ex)
+        {
+            FlashError(ex.Message);
+        }
+        return RedirectToPage(null, null, new { sam }, "permissions");
     }
 
     public async Task<IActionResult> OnPostRemoveRuleAsync(string sam)

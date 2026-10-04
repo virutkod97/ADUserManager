@@ -60,6 +60,17 @@
     sync();
   });
 
+  var kindRadios = document.querySelectorAll('[data-kind-radio]');
+  if (kindRadios.length) {
+    var syncKind = function () {
+      var checked = document.querySelector('[data-kind-radio]:checked');
+      var isPermission = checked && checked.value === 'Permission';
+      document.querySelectorAll('[data-main-only]').forEach(function (el) { el.hidden = isPermission; });
+    };
+    kindRadios.forEach(function (r) { r.addEventListener('change', syncKind); });
+    syncKind();
+  }
+
   var form = document.getElementById('create-user-form');
   if (form) {
     var ruleData = JSON.parse(document.getElementById('rule-data').textContent || '{}');

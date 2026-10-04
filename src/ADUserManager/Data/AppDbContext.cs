@@ -9,6 +9,7 @@ public class AppDbContext : DbContext
 
     public DbSet<AccountRule> Rules => Set<AccountRule>();
     public DbSet<UserRuleAssignment> Assignments => Set<UserRuleAssignment>();
+    public DbSet<UserPermissionAssignment> PermissionAssignments => Set<UserPermissionAssignment>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     protected override void OnModelCreating(ModelBuilder b)
@@ -36,6 +37,16 @@ public class AppDbContext : DbContext
             e.HasIndex(x => x.SamAccountName).IsUnique();
             e.HasOne(x => x.Rule)
                 .WithMany(r => r.Assignments)
+                .HasForeignKey(x => x.RuleId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        b.Entity<UserPermissionAssignment>(e =>
+        {
+            e.Property(x => x.SamAccountName).UseCollation("NOCASE");
+            e.HasIndex(x => new { x.SamAccountName, x.RuleId }).IsUnique();
+            e.HasOne(x => x.Rule)
+                .WithMany(r => r.PermissionAssignments)
                 .HasForeignKey(x => x.RuleId)
                 .OnDelete(DeleteBehavior.Restrict);
         });

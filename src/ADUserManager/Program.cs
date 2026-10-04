@@ -96,7 +96,9 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
-    scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.EnsureCreated();
+    SchemaUpgrader.Upgrade(
+        scope.ServiceProvider.GetRequiredService<AppDbContext>(),
+        scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("SchemaUpgrader"));
 }
 
 if (!app.Environment.IsDevelopment())

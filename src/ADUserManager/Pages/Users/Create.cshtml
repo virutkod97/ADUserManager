@@ -3,7 +3,9 @@
 @using System.Text.Json
 @{
     ViewData["Title"] = "Tạo tài khoản";
-    var ruleData = Model.Rules.ToDictionary(r => r.Id.ToString(), r => new
+    var mainRules = Model.Rules.Where(r => !r.IsPermission).ToList();
+    var permRules = Model.Rules.Where(r => r.IsPermission).ToList();
+    var ruleData = mainRules.ToDictionary(r => r.Id.ToString(), r => new
     {
         ou = DnHelper.ToPath(r.OuDn),
         groups = r.GroupDns.Select(g => DnHelper.RdnValue(DnHelper.Split(g)[0])).ToList(),
@@ -16,9 +18,9 @@
     <div class="actions"><a class="btn" href="/Users">← Danh sách tài khoản</a></div>
 </div>
 
-@if (Model.Rules.Count == 0)
+@if (mainRules.Count == 0)
 {
-    <div class="alert alert-warn">Chưa có rule nào. Hãy <a href="/Rules/Edit">tạo rule</a> trước để xác định OU và group cho tài khoản mới.</div>
+    <div class="alert alert-warn">Chưa có rule chính nào. Hãy <a href="/Rules/Edit">tạo rule</a> trước để xác định OU và group cho tài khoản mới.</div>
 }
 
 <script type="application/json" id="rule-data">@Html.Raw(JsonSerializer.Serialize(ruleData))</script>
@@ -28,10 +30,10 @@
 
     <h3>Rule</h3>
     <label class="field">
-        <span>Rule tài khoản *</span>
+        <span>Rule chính *</span>
         <select asp-for="Input.RuleId" id="rule-select">
             <option value="">— Chọn rule —</option>
-            @foreach (var r in Model.Rules)
+            @foreach (var r in mainRules)
             {
                 <option value="@r.Id">@r.Name@(r.IsProbation ? " (thử việc)" : "")</option>
             }
@@ -43,6 +45,21 @@
         <div><span class="muted">Group:</span> <span data-k="groups"></span></div>
         <div data-k="probation"></div>
     </div>
+    @if (permRules.Count > 0)
+    {
+        <div class="field">
+            <span>Rule phân quyền (tuỳ chọn, chọn được nhiều)</span>
+            <div class="checklist">
+                @foreach (var r in permRules)
+                {
+                    <label class="check">
+                        <input type="checkbox" name="Input.PermissionRuleIds" value="@r.Id" checked="@Model.Input.PermissionRuleIds.Contains(r.Id)" />
+                        <span><strong>@r.Name</strong> <span class="muted small">+ @string.Join(", ", r.GroupDns.Select(g => DnHelper.RdnValue(DnHelper.Split(g)[0])))</span></span>
+                    </label>
+                }
+            </div>
+        </div>
+    }
 
     <h3>Thông tin người dùng</h3>
     <div class="grid2">
@@ -120,7 +137,7 @@
     </div>
 
     <div class="form-actions">
-        <button type="submit" class="btn btn-primary" @(Model.Rules.Count == 0 ? "disabled" : "")>Tạo tài khoản</button>
+        <button type="submit" class="btn btn-primary" @(mainRules.Count == 0 ? "disabled" : "")>Tạo tài khoản</button>
         <a class="btn" href="/Users">Huỷ</a>
     </div>
 </form>
