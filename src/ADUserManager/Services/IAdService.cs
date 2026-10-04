@@ -23,6 +23,7 @@ public interface IAdService
     void Unlock(string samAccountName);
 
     void MoveUser(string samAccountName, string targetOuDn);
+    IReadOnlyList<string> GetUserGroups(string samAccountName);
     void AddToGroup(string samAccountName, string groupDn);
     void RemoveFromGroup(string samAccountName, string groupDn);
 }

@@ -278,6 +278,7 @@ public sealed class AdService : IAdService
         var r = FindOne(samAccountName);
         if (r is null) return null;
         var u = Map(r);
+        u.MemberOf = ReadMembership(samAccountName).MemberOf.OrderBy(g => g, StringComparer.OrdinalIgnoreCase).ToList();
         try
         {
             using var ctx = Ctx();
@@ -478,17 +479,36 @@ public sealed class AdService : IAdService
                 : $"Đã gửi lệnh gỡ '{sam}' khỏi group '{groupName}' nhưng kiểm tra lại vẫn còn là thành viên.");
     }
 
+    public IReadOnlyList<string> GetUserGroups(string samAccountName) => Run("đọc group của tài khoản", () =>
+        (IReadOnlyList<string>)ReadMembership(samAccountName).MemberOf.OrderBy(g => g, StringComparer.OrdinalIgnoreCase).ToList());
+
+    // Gộp 3 nguồn: memberOf trong kết quả tìm kiếm, memberOf đọc trực tiếp trên object, và các group có member = tài khoản
     private (string UserDn, HashSet<string> MemberOf) ReadMembership(string sam)
     {
         var r = FindOne(sam) ?? throw new AdOperationException($"Không tìm thấy tài khoản '{sam}'.");
         var dn = Str(r, "distinguishedName")!;
         var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        // Đọc trực tiếp trên object (base scope) để không dính độ trễ của kết quả tìm kiếm
+        foreach (var g in r.Properties["memberOf"])
+            if (g is string s) set.Add(s);
+
         using (var user = Entry(dn))
         {
             user.RefreshCache(new[] { "memberOf" });
             foreach (var g in user.Properties["memberOf"])
                 if (g is string s) set.Add(s);
+        }
+
+        using (var root = Entry(DefaultNc))
+        using (var search = new DirectorySearcher(root, $"(&(objectCategory=group)(member={DnHelper.EscapeFilter(dn)}))",
+                   new[] { "distinguishedName" })
+               {
+                   PageSize = 500,
+                   SearchScope = SearchScope.Subtree,
+               })
+        using (var results = search.FindAll())
+        {
+            foreach (SearchResult g in results)
+                if (Str(g, "distinguishedName") is { } gdn) set.Add(gdn);
         }
         return (dn, set);
     }

@@ -195,6 +195,11 @@ public sealed class MockAdService : IAdService
         }
     }
 
+    public IReadOnlyList<string> GetUserGroups(string sam)
+    {
+        lock (_lock) return Get(sam).User.MemberOf.ToList();
+    }
+
     public void AddToGroup(string sam, string groupDn)
     {
         lock (_lock)
