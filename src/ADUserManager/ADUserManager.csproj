@@ -8,6 +8,8 @@
     <AssemblyName>ADUserManager</AssemblyName>
     <Version>1.0.0</Version>
     <InvariantGlobalization>false</InvariantGlobalization>
+    <!-- Chạy Kestrel trực tiếp dạng Windows Service, không dùng IIS -->
+    <IsTransformWebConfigDisabled>true</IsTransformWebConfigDisabled>
   </PropertyGroup>
 
   <ItemGroup>

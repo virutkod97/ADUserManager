@@ -1,0 +1,16 @@
+AD USER MANAGER - HUONG DAN CAI DAT NHANH
+=========================================
+
+1. Copy ca thu muc nay len may chu AD (Domain Controller).
+2. Double-click install.bat (script tu xin quyen Administrator).
+3. Mo trinh duyet: https://<ten-may-chu>:5443
+   Dang nhap bang tai khoan AD thuoc nhom Administrators / Domain Admins.
+
+- Chung chi HTTPS tu ky -> trinh duyet canh bao, bam "Advanced" -> "Proceed".
+- Doi cong:      mo cmd (Admin) chay: install.bat -Port 8443
+- Nang cap:      giai nen ban moi, chay lai install.bat (giu nguyen cau hinh + du lieu).
+- Go cai dat:    uninstall.bat   (giu du lieu)
+- Thu muc cai:   C:\Program Files\ADUserManager
+- Cau hinh:      C:\Program Files\ADUserManager\appsettings.json  (sua xong: restart service ADUserManager)
+- Du lieu:       C:\Program Files\ADUserManager\data\adusermanager.db
+- Log loi:       Event Viewer -> Windows Logs -> Application, nguon "ADUserManager"

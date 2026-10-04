@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   Gỡ service ADUserManager. Mặc định GIỮ LẠI thư mục cài đặt (dữ liệu rule, nhật ký).
   Thêm -RemoveFiles để xoá toàn bộ.

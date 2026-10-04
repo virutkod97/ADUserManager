@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   Cài đặt / nâng cấp ADUserManager thành Windows Service trên máy chủ AD.
 
@@ -9,7 +9,7 @@
   - Tạo service "ADUserManager" (khởi động tự động, tự khởi động lại khi lỗi)
   - Mở firewall cổng HTTPS cho Domain profile
 
-  Chạy bằng PowerShell "Run as Administrator", từ thư mục chứa ADUserManager.exe (kết quả publish).
+  Cách dễ nhất: chạy install.bat (tự xin quyền Administrator).
 
 .EXAMPLE
   .\install-service.ps1
@@ -43,16 +43,23 @@ if ($svc -and $svc.Status -ne "Stopped") {
 }
 
 # ---------------------------------------------------------------- copy file
-Write-Host "Copy chương trình vào $InstallDir ..."
 New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
-$keepIfExists = @("appsettings.json", "appsettings.Production.json")
-Get-ChildItem -Path $SourceDir -Force | Where-Object { $_.Name -ne "data" } | ForEach-Object {
-    $dest = Join-Path $InstallDir $_.Name
-    if ($keepIfExists -contains $_.Name -and (Test-Path $dest)) {
-        Write-Host "  Giữ nguyên cấu hình hiện có: $($_.Name)"
-        return
+$srcFull = (Resolve-Path $SourceDir).Path.TrimEnd('\')
+$dstFull = (Resolve-Path $InstallDir).Path.TrimEnd('\')
+if ($srcFull -ieq $dstFull) {
+    Write-Host "Đang chạy ngay trong thư mục cài đặt, bỏ qua bước copy."
+}
+else {
+    Write-Host "Copy chương trình vào $InstallDir ..."
+    $keepIfExists = @("appsettings.json", "appsettings.Production.json")
+    Get-ChildItem -Path $SourceDir -Force | Where-Object { $_.Name -ne "data" } | ForEach-Object {
+        $dest = Join-Path $InstallDir $_.Name
+        if ($keepIfExists -contains $_.Name -and (Test-Path $dest)) {
+            Write-Host "  Giữ nguyên cấu hình hiện có: $($_.Name)"
+            return
+        }
+        Copy-Item $_.FullName $dest -Recurse -Force
     }
-    Copy-Item $_.FullName $dest -Recurse -Force
 }
 
 # ---------------------------------------------------------------- cổng HTTPS

@@ -1,0 +1,22 @@
+name: Build package
+
+on:
+  push:
+    branches: [ "**" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Publish
+        shell: pwsh
+        run: ./scripts/publish.ps1 -Output ./publish/ADUserManager-win-x64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ADUserManager-win-x64
+          path: publish/ADUserManager-win-x64

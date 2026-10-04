@@ -40,24 +40,18 @@ scripts/
 
 ## Cài đặt
 
-### 1. Build (trên máy có .NET 8 SDK)
+### 1. Lấy bản build
 
-```powershell
-.\scripts\publish.ps1
-```
+- Tải artifact **ADUserManager-win-x64** ở tab *Actions* của repo (tự build mỗi lần push), hoặc
+- Tự build trên máy có .NET 8 SDK: `.\scripts\publish.ps1` → thư mục `publish\`.
 
-Kết quả ở thư mục `publish\` — bản **self-contained**, máy chủ AD **không cần cài .NET**.
+Bản build là 1 file `ADUserManager.exe` **self-contained** — máy chủ AD **không cần cài .NET**.
 
 ### 2. Cài lên máy chủ AD
 
-Copy thư mục `publish` lên máy chủ AD (Domain Controller hoặc máy đã join domain), mở PowerShell **Run as Administrator**:
+Copy thư mục lên máy chủ AD (Domain Controller hoặc máy đã join domain) và **double-click `install.bat`** (tự xin quyền Administrator).
 
-```powershell
-cd C:\path\to\publish
-Set-ExecutionPolicy -Scope Process Bypass
-.\install-service.ps1               # mặc định cổng 5443
-# hoặc: .\install-service.ps1 -Port 8443 -InstallDir "D:\Apps\ADUserManager"
-```
+Tuỳ chọn (chạy trong cmd Administrator): `install.bat -Port 8443 -InstallDir "D:\Apps\ADUserManager"`
 
 Script sẽ:
 1. Copy vào `C:\Program Files\ADUserManager` (khi nâng cấp **giữ nguyên** `appsettings*.json` và thư mục `data`).
@@ -71,9 +65,9 @@ Truy cập: `https://<tên-máy-chủ>:5443`
 
 ### 3. Gỡ cài đặt
 
-```powershell
-.\uninstall-service.ps1                 # giữ lại dữ liệu
-.\uninstall-service.ps1 -RemoveFiles    # xoá toàn bộ
+```bat
+uninstall.bat                 :: giữ lại dữ liệu
+uninstall.bat -RemoveFiles    :: xoá toàn bộ (chạy trong cmd Administrator)
 ```
 
 ## Cấu hình (`appsettings.json`)
