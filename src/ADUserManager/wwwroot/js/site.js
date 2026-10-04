@@ -60,6 +60,37 @@
     sync();
   });
 
+  var bulkForm = document.getElementById('bulk-form');
+  if (bulkForm) {
+    var selects = Array.prototype.slice.call(document.querySelectorAll('[data-bulk-rule]'));
+    var countEl = bulkForm.querySelector('[data-bulk-count]');
+    var changed = function () { return selects.filter(function (s) { return s.value !== s.getAttribute('data-original'); }); };
+    var refresh = function () {
+      var c = changed();
+      selects.forEach(function (s) {
+        var isChanged = c.indexOf(s) >= 0;
+        s.classList.toggle('changed', isChanged);
+        var tr = s.closest('tr');
+        if (tr) tr.classList.toggle('row-changed', isChanged);
+      });
+      countEl.textContent = c.length;
+      bulkForm.hidden = c.length === 0;
+    };
+    selects.forEach(function (s) { s.addEventListener('change', refresh); });
+    bulkForm.querySelector('[data-bulk-reset]').addEventListener('click', function () {
+      selects.forEach(function (s) { s.value = s.getAttribute('data-original'); });
+      refresh();
+    });
+    bulkForm.addEventListener('submit', function (e) {
+      var c = changed();
+      if (c.length === 0 || !window.confirm('Đổi rule chính cho ' + c.length + ' tài khoản?')) { e.preventDefault(); return; }
+      selects.forEach(function (s) { if (c.indexOf(s) < 0) s.disabled = true; });
+      window.onbeforeunload = null;
+    });
+    window.onbeforeunload = function () { return changed().length > 0 ? '' : undefined; };
+    refresh();
+  }
+
   var kindRadios = document.querySelectorAll('[data-kind-radio]');
   if (kindRadios.length) {
     var syncKind = function () {

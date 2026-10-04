@@ -8,9 +8,7 @@
 - Giải nén bản mới và chạy lại `install.bat`. Cấu hình và dữ liệu được giữ nguyên.
 
 ## Thay đổi trong bản này
-- **Rule phân quyền**: loại rule mới chỉ thêm group, không đổi OU; một tài khoản gán được nhiều rule phân quyền
-  (VD: rule chính *Quản trị* → OU Quản trị + group IT; thêm rule phân quyền *Trưởng bộ phận* (TBP) và *Pháp chế*).
-- Gán rule phân quyền khi tạo tài khoản hoặc ở trang chi tiết tài khoản; gỡ rule chỉ gỡ những group không còn rule nào khác cấp.
-- Chuyển rule chính không gỡ các group mà rule phân quyền đang cấp.
-- Danh sách tài khoản hiển thị và lọc theo rule phân quyền.
-- Tự nâng cấp cơ sở dữ liệu của bản cũ, giữ nguyên rule và dữ liệu đã có.
+- **Đổi rule chính hàng loạt** ngay tại danh sách Tài khoản: mỗi dòng có ô chọn rule chính, dòng đã đổi được tô màu;
+  thanh **Lưu** ở góc dưới phải hiện số tài khoản thay đổi, tuỳ chọn chuyển OU / thêm group mới / gỡ group cũ, có nút **Huỷ**.
+  Rời trang khi còn thay đổi chưa lưu sẽ được hỏi lại.
+- Khung bảng tài khoản cao tối thiểu bằng màn hình, menu "⋯" không còn bị che khi lọc ra ít tài khoản.

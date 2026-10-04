@@ -114,6 +114,7 @@ code, .mono { font-family: Consolas, "Cascadia Mono", ui-monospace, monospace; }
 .stat-warn .stat-num { color: var(--warn); }
 
 .table-wrap { overflow-x: auto; }
+.table-tall { min-height: calc(100vh - 230px); }
 .table { width: 100%; border-collapse: collapse; }
 .table th, .table td { padding: 9px 10px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
 .table th { white-space: nowrap; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); font-weight: 600; background: var(--surface-2); }
@@ -256,3 +257,15 @@ pre.log { white-space: pre-wrap; background: var(--surface-2); border: 1px solid
 .chip-perm { background: var(--info-soft); color: var(--info); }
 .perm-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
 .perm-item { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; }
+.rule-cell { min-width: 200px; }
+.rule-select { padding: 4px 8px; font-size: 13px; margin-bottom: 4px; }
+.rule-select.changed { border-color: var(--warn); background: var(--warn-soft); font-weight: 600; }
+tr.row-changed { box-shadow: inset 3px 0 0 var(--warn); }
+.bulk-bar {
+  position: fixed; right: 24px; bottom: 24px; z-index: 50; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  max-width: calc(100vw - 48px); padding: 12px 16px; background: var(--surface); border: 1px solid var(--warn);
+  border-radius: 10px; box-shadow: 0 10px 30px rgba(15, 23, 42, .25);
+}
+.bulk-bar .check { padding: 0; white-space: nowrap; }
+.bulk-actions { display: flex; gap: 8px; }
+@media (max-width: 860px) { .bulk-bar { left: 16px; right: 16px; bottom: 16px; max-width: none; } }

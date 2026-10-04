@@ -2,6 +2,7 @@
 @model ADUserManager.Pages.Users.IndexModel
 @{
     ViewData["Title"] = "Tài khoản";
+    var mainRules = Model.Rules.Where(r => !r.IsPermission).ToList();
 }
 <div class="page-head">
     <h1>Tài khoản</h1>
@@ -45,10 +46,10 @@
     }
     else
     {
-        <div class="table-wrap">
+        <div class="table-wrap table-tall">
         <table class="table">
             <thead>
-            <tr><th>Tài khoản</th><th>Họ tên</th><th>OU</th><th>Rule</th><th>Trạng thái</th><th></th></tr>
+            <tr><th>Tài khoản</th><th>Họ tên</th><th>OU</th><th>Rule chính</th><th>Trạng thái</th><th></th></tr>
             </thead>
             <tbody>
             @foreach (var u in Model.Users)
@@ -62,8 +63,15 @@
                     </td>
                     <td>@u.DisplayName</td>
                     <td class="small" title="@u.ParentDn">@DnHelper.ToPath(u.ParentDn)</td>
-                    <td>
-                        @(a?.Rule?.Name ?? "—")
+                    <td class="rule-cell">
+                        <select name="rules[@u.SamAccountName]" form="bulk-form" class="rule-select" data-bulk-rule
+                                data-original="@(a?.RuleId.ToString() ?? "")" aria-label="Rule chính của @u.SamAccountName">
+                            @if (a is null) { <option value="" selected>— Chưa gán —</option> }
+                            @foreach (var r in mainRules)
+                            {
+                                <option value="@r.Id" selected="@(a?.RuleId == r.Id)">@r.Name@(r.IsProbation ? " (thử việc)" : "")</option>
+                            }
+                        </select>
                         <partial name="_ProbationBadge" model="ps" />
                         @if (Model.Permissions.GetValueOrDefault(u.SamAccountName) is { } perms)
                         {
@@ -105,3 +113,15 @@
         </div>
     }
 </section>
+
+<form method="post" id="bulk-form" asp-page-handler="BulkRule" asp-route-q="@Model.Q" asp-route-rule="@Model.RuleFilter"
+      class="bulk-bar" hidden>
+    <div class="bulk-count"><strong data-bulk-count>0</strong> tài khoản đổi rule chính</div>
+    <label class="check"><input type="checkbox" name="moveOu" value="true" checked /> <span>Chuyển OU</span></label>
+    <label class="check"><input type="checkbox" name="addGroups" value="true" checked /> <span>Thêm group rule mới</span></label>
+    <label class="check"><input type="checkbox" name="removeOldGroups" value="true" checked /> <span>Gỡ group rule cũ</span></label>
+    <div class="bulk-actions">
+        <button type="button" class="btn" data-bulk-reset>Huỷ</button>
+        <button type="submit" class="btn btn-primary">Lưu</button>
+    </div>
+</form>

@@ -57,6 +57,45 @@ public class IndexModel : AppPageModel
 
     private IActionResult Back() => RedirectToPage(new { q = Q, rule = RuleFilter });
 
+    public async Task<IActionResult> OnPostBulkRuleAsync(
+        Dictionary<string, string?> rules, bool moveOu, bool addGroups, bool removeOldGroups)
+    {
+        var current = await _rules.GetAssignmentsAsync();
+        var mainRules = (await _rules.GetRulesAsync()).Where(r => !r.IsPermission).ToDictionary(r => r.Id);
+
+        var changes = rules
+            .Where(kv => int.TryParse(kv.Value, out var id) && mainRules.ContainsKey(id)
+                         && current.GetValueOrDefault(kv.Key)?.RuleId != id)
+            .Select(kv => (Sam: kv.Key, RuleId: int.Parse(kv.Value!)))
+            .ToList();
+        if (changes.Count == 0)
+        {
+            FlashError("Không có thay đổi nào để lưu.");
+            return Back();
+        }
+
+        var ok = new List<string>();
+        var problems = new List<string>();
+        foreach (var (sam, ruleId) in changes)
+        {
+            try
+            {
+                var warnings = await _rules.ChangeRuleAsync(sam, ruleId, moveOu, addGroups, removeOldGroups);
+                ok.Add($"{sam} → {mainRules[ruleId].Name}");
+                problems.AddRange(warnings.Select(w => $"{sam}: {w}"));
+            }
+            catch (AdOperationException ex)
+            {
+                problems.Add($"{sam}: {ex.Message}");
+            }
+        }
+
+        if (ok.Count > 0) FlashSuccess($"Đã đổi rule chính cho {ok.Count}/{changes.Count} tài khoản: {string.Join(", ", ok)}.");
+        else FlashError("Không đổi được rule cho tài khoản nào.");
+        FlashWarnings(problems);
+        return Back();
+    }
+
     public async Task<IActionResult> OnPostToggleAsync(string sam, bool enable)
     {
         try
