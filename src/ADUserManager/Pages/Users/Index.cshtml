@@ -28,6 +28,7 @@
             }
         </optgroup>
     </select>
+    <label class="check toolbar-check"><input type="checkbox" name="all" value="true" checked="@Model.ShowAll" data-autosubmit /> <span>Hiện cả tài khoản bị vô hiệu hoá</span></label>
     <button class="btn" type="submit">Lọc</button>
 </form>
 
@@ -38,7 +39,11 @@
 
 <section class="card">
     <div class="card-head">
-        <span class="muted">@Model.Users.Count tài khoản@(Model.Truncated ? " (đã đạt giới hạn kết quả, hãy thu hẹp tìm kiếm)" : "")</span>
+        <span class="muted">
+            @Model.Users.Count tài khoản@(Model.ShowAll ? "" : " đang hoạt động")
+            @if (Model.HiddenDisabled > 0) { <text>· @Model.HiddenDisabled tài khoản vô hiệu hoá đang ẩn (<a href="?q=@Uri.EscapeDataString(Model.Q ?? "")&rule=@Model.RuleFilter&all=true">hiện</a>)</text> }
+            @(Model.Truncated ? " (đã đạt giới hạn kết quả, hãy thu hẹp tìm kiếm)" : "")
+        </span>
     </div>
     @if (Model.Users.Count == 0)
     {
@@ -91,15 +96,15 @@
                             <div class="menu-body">
                                 @if (u.LockedOut)
                                 {
-                                    <form method="post" asp-page-handler="Unlock" asp-route-sam="@u.SamAccountName" asp-route-q="@Model.Q" asp-route-rule="@Model.RuleFilter">
+                                    <form method="post" asp-page-handler="Unlock" asp-route-sam="@u.SamAccountName" asp-route-q="@Model.Q" asp-route-rule="@Model.RuleFilter" asp-route-all="@(Model.ShowAll ? "true" : null)">
                                         <button type="submit">Mở khoá</button>
                                     </form>
                                 }
-                                <form method="post" asp-page-handler="Toggle" asp-route-sam="@u.SamAccountName" asp-route-enable="@(!u.Enabled)" asp-route-q="@Model.Q" asp-route-rule="@Model.RuleFilter"
+                                <form method="post" asp-page-handler="Toggle" asp-route-sam="@u.SamAccountName" asp-route-enable="@(!u.Enabled)" asp-route-q="@Model.Q" asp-route-rule="@Model.RuleFilter" asp-route-all="@(Model.ShowAll ? "true" : null)"
                                       data-confirm="@(u.Enabled ? "Vô hiệu hoá" : "Kích hoạt") tài khoản @u.SamAccountName?">
                                     <button type="submit">@(u.Enabled ? "Vô hiệu hoá" : "Kích hoạt")</button>
                                 </form>
-                                <form method="post" asp-page-handler="Delete" asp-route-sam="@u.SamAccountName" asp-route-q="@Model.Q" asp-route-rule="@Model.RuleFilter"
+                                <form method="post" asp-page-handler="Delete" asp-route-sam="@u.SamAccountName" asp-route-q="@Model.Q" asp-route-rule="@Model.RuleFilter" asp-route-all="@(Model.ShowAll ? "true" : null)"
                                       data-confirm="XOÁ VĨNH VIỄN tài khoản @u.SamAccountName (@u.DisplayName)? Thao tác không thể hoàn tác.">
                                     <button type="submit" class="danger">Xoá tài khoản</button>
                                 </form>
@@ -114,7 +119,7 @@
     }
 </section>
 
-<form method="post" id="bulk-form" asp-page-handler="BulkRule" asp-route-q="@Model.Q" asp-route-rule="@Model.RuleFilter"
+<form method="post" id="bulk-form" asp-page-handler="BulkRule" asp-route-q="@Model.Q" asp-route-rule="@Model.RuleFilter" asp-route-all="@(Model.ShowAll ? "true" : null)"
       class="bulk-bar" hidden>
     <div class="bulk-count"><strong data-bulk-count>0</strong> tài khoản đổi rule chính</div>
     <div class="bulk-actions">

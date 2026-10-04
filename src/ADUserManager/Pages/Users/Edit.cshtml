@@ -105,11 +105,8 @@
                     </select>
                 </label>
                 <label class="check"><input type="checkbox" name="moveOu" value="true" checked /> <span>Di chuyển tài khoản sang OU của rule mới</span></label>
+                <label class="check"><input type="checkbox" name="clearGroups" value="true" checked /> <span>Gỡ toàn bộ group hiện có trước khi thêm (giữ group do rule phân quyền cấp)</span></label>
                 <label class="check"><input type="checkbox" name="addGroups" value="true" checked /> <span>Thêm vào các group của rule mới</span></label>
-                @if (Model.Assignment is not null)
-                {
-                    <label class="check"><input type="checkbox" name="removeOldGroups" value="true" checked /> <span>Gỡ khỏi các group của rule cũ (trừ group mà rule mới hoặc rule phân quyền vẫn cấp)</span></label>
-                }
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary">@(Model.Assignment is null ? "Gán rule" : "Chuyển rule")</button>
                 </div>

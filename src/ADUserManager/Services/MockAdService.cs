@@ -22,12 +22,16 @@ public sealed class MockAdService : IAdService
             ("GRP_IT", "Phòng IT"), ("GRP_KeToan", "Phòng Kế toán"), ("GRP_KinhDoanh", "Phòng Kinh doanh"),
             ("GRP_VPN", "Truy cập VPN"), ("GRP_FileServer_RW", "Ghi file server"),
             ("GRP_TBP", "Trưởng bộ phận"), ("GRP_PhapChe", "Pháp chế"),
+            ("baocaotbp", "Báo cáo TBP"), ("TKhop", "Tài khoản họp"),
         }.Select(g => new AdGroup($"CN={g.Name},OU=NPC,{Nc}", g.Name, g.Desc)).ToList();
 
         Seed("admin", "Quản trị viên", "Admin@123", $"CN=Users,{Nc}", "Domain Admins");
         Seed("user01", "Người dùng thường", "User@123", $"CN=Users,{Nc}");
         Seed("anhnd", "Nguyễn Đức Anh", "P@ssw0rd!", $"OU=Phong IT,OU=NPC,{Nc}", "GRP_IT", "GRP_Internet");
         Seed("hoalt", "Lê Thị Hoa", "P@ssw0rd!", $"OU=Thu viec,OU=NPC,{Nc}", "GRP_ThuViec");
+        Seed("hop", "Phòng Họp", "P@ssw0rd!", $"OU=NPC,{Nc}", "baocaotbp", "GRP_Internet");
+        Seed("disabled01", "Nhân viên Nghỉ việc", "P@ssw0rd!", $"OU=NPC,{Nc}");
+        _users["disabled01"].User.Enabled = false;
         Seed("binhtv", "Trần Văn Bình", "P@ssw0rd!", $"OU=Phong Ke toan,OU=NPC,{Nc}", "GRP_KeToan");
     }
 

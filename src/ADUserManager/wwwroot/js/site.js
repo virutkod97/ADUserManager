@@ -60,6 +60,10 @@
     sync();
   });
 
+  document.querySelectorAll('[data-autosubmit]').forEach(function (el) {
+    el.addEventListener('change', function () { if (el.form) el.form.submit(); });
+  });
+
   var bulkForm = document.getElementById('bulk-form');
   if (bulkForm) {
     var selects = Array.prototype.slice.call(document.querySelectorAll('[data-bulk-rule]'));

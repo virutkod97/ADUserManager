@@ -114,7 +114,7 @@ public class EditModel : AppPageModel
         return Back(sam);
     }
 
-    public async Task<IActionResult> OnPostChangeRuleAsync(string sam, int? newRuleId, bool moveOu, bool addGroups, bool removeOldGroups)
+    public async Task<IActionResult> OnPostChangeRuleAsync(string sam, int? newRuleId, bool moveOu, bool addGroups, bool clearGroups)
     {
         if (newRuleId is null)
         {
@@ -123,7 +123,7 @@ public class EditModel : AppPageModel
         }
         try
         {
-            var warnings = await _rules.ChangeRuleAsync(sam, newRuleId.Value, moveOu, addGroups, removeOldGroups);
+            var warnings = await _rules.ChangeRuleAsync(sam, newRuleId.Value, moveOu, addGroups, clearGroups);
             var rule = await _rules.GetRuleAsync(newRuleId.Value);
             FlashSuccess($"Đã chuyển tài khoản {sam} sang rule '{rule?.Name}'.");
             FlashWarnings(warnings);

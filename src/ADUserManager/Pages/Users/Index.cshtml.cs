@@ -22,12 +22,14 @@ public class IndexModel : AppPageModel
 
     [BindProperty(SupportsGet = true)] public string? Q { get; set; }
     [BindProperty(SupportsGet = true, Name = "rule")] public string? RuleFilter { get; set; }
+    [BindProperty(SupportsGet = true, Name = "all")] public bool ShowAll { get; set; }
 
     public List<AdUser> Users { get; private set; } = new();
     public List<AccountRule> Rules { get; private set; } = new();
     public Dictionary<string, UserRuleAssignment> Assignments { get; private set; } = new();
     public Dictionary<string, List<UserPermissionAssignment>> Permissions { get; private set; } = new();
     public bool Truncated { get; private set; }
+    public int HiddenDisabled { get; private set; }
     public string? LoadError { get; private set; }
 
     public async Task OnGetAsync()
@@ -47,7 +49,13 @@ public class IndexModel : AppPageModel
             else if (int.TryParse(RuleFilter, out var ruleId))
                 users = users.Where(u => Assignments.GetValueOrDefault(u.SamAccountName)?.RuleId == ruleId
                                          || (Permissions.GetValueOrDefault(u.SamAccountName)?.Any(p => p.RuleId == ruleId) ?? false));
-            Users = users.ToList();
+            var list = users.ToList();
+            if (!ShowAll)
+            {
+                HiddenDisabled = list.Count(u => !u.Enabled);
+                list = list.Where(u => u.Enabled).ToList();
+            }
+            Users = list;
         }
         catch (AdOperationException ex)
         {
@@ -55,7 +63,7 @@ public class IndexModel : AppPageModel
         }
     }
 
-    private IActionResult Back() => RedirectToPage(new { q = Q, rule = RuleFilter });
+    private IActionResult Back() => RedirectToPage(new { q = Q, rule = RuleFilter, all = ShowAll ? "true" : null });
 
     public async Task<IActionResult> OnPostBulkRuleAsync(Dictionary<string, string?> rules)
     {
@@ -79,7 +87,7 @@ public class IndexModel : AppPageModel
         {
             try
             {
-                var warnings = await _rules.ChangeRuleAsync(sam, ruleId, moveOu: true, addGroups: true, removeOldGroups: true);
+                var warnings = await _rules.ChangeRuleAsync(sam, ruleId, moveOu: true, addGroups: true, clearGroups: true);
                 ok.Add($"{sam} → {mainRules[ruleId].Name}");
                 problems.AddRange(warnings.Select(w => $"{sam}: {w}"));
             }

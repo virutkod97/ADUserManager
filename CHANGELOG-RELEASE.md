@@ -8,6 +8,8 @@
 - Giải nén bản mới và chạy lại `install.bat`. Cấu hình và dữ liệu được giữ nguyên.
 
 ## Thay đổi trong bản này
-- Đơn giản hoá đổi rule chính hàng loạt: bỏ các ô tuỳ chọn. Chọn rule chính B cho tài khoản đang ở A rồi bấm **Lưu**
-  → tài khoản chuyển sang OU của B, bỏ group của A, thêm group của B. Group do rule phân quyền cấp được giữ nguyên.
-  Cần tuỳ chỉnh chi tiết thì vào **Sửa** từng tài khoản.
+- **Đổi rule chính giờ gỡ toàn bộ group hiện có** của tài khoản rồi mới thêm group của rule mới (áp dụng cả đổi hàng loạt
+  lẫn trang Sửa). Chỉ giữ lại group do rule phân quyền cấp; Domain Users (primary group) không bị ảnh hưởng.
+  Áp dụng cả với tài khoản trước đó chưa gán rule hoặc có group thêm tay ngoài phần mềm.
+  Nhật ký ghi rõ danh sách group đã gỡ.
+- Trang Tài khoản mặc định **chỉ hiện tài khoản đang hoạt động**; tick **Hiện cả tài khoản bị vô hiệu hoá** để xem toàn bộ.

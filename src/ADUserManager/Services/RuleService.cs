@@ -173,13 +173,14 @@ public class RuleService
         return (user, warnings);
     }
 
-    public async Task<List<string>> ChangeRuleAsync(string sam, int newRuleId, bool moveOu, bool addGroups, bool removeOldGroups)
+    // clearGroups: gỡ toàn bộ group hiện có của tài khoản (trừ group rule phân quyền đang cấp) trước khi thêm group rule mới
+    public async Task<List<string>> ChangeRuleAsync(string sam, int newRuleId, bool moveOu, bool addGroups, bool clearGroups)
     {
         var newRule = await GetRuleAsync(newRuleId) ?? throw new AdOperationException("Rule không tồn tại.");
         if (newRule.IsPermission) throw new AdOperationException("Rule phân quyền được gán ở mục 'Rule phân quyền', không dùng làm rule chính.");
         var current = await GetAssignmentAsync(sam);
         var oldRule = current?.Rule;
-        if (!_ad.UserExists(sam)) throw new AdOperationException($"Không tìm thấy tài khoản '{sam}'.");
+        var user = _ad.GetUser(sam) ?? throw new AdOperationException($"Không tìm thấy tài khoản '{sam}'.");
 
         var warnings = new List<string>();
         if (moveOu)
@@ -187,13 +188,19 @@ public class RuleService
             try { _ad.MoveUser(sam, newRule.OuDn); }
             catch (AdOperationException ex) { warnings.Add(ex.Message); }
         }
-        if (removeOldGroups && oldRule is not null)
+
+        var removed = new List<string>();
+        if (clearGroups)
         {
             var keep = new HashSet<string>(newRule.GroupDns, StringComparer.OrdinalIgnoreCase);
             foreach (var p in await GetUserPermissionsAsync(sam)) keep.UnionWith(p.Rule!.GroupDns);
-            foreach (var g in oldRule.GroupDns.Where(g => !keep.Contains(g)))
+            foreach (var g in user.MemberOf.Where(g => !keep.Contains(g)))
             {
-                try { _ad.RemoveFromGroup(sam, g); }
+                try
+                {
+                    _ad.RemoveFromGroup(sam, g);
+                    removed.Add(DnHelper.RdnValue(DnHelper.Split(g)[0]));
+                }
                 catch (AdOperationException ex) { warnings.Add(ex.Message); }
             }
         }
@@ -208,7 +215,8 @@ public class RuleService
 
         await UpsertAssignmentAsync(sam, newRule.Id);
         await _audit.LogAsync("User.ChangeRule", sam,
-            $"{oldRule?.Name ?? "(chưa có)"} → {newRule.Name}; Chuyển OU: {moveOu}; Thêm group: {addGroups}; Gỡ group cũ: {removeOldGroups}"
+            $"{oldRule?.Name ?? "(chưa có)"} → {newRule.Name}; Chuyển OU: {moveOu}; Thêm group: {addGroups}; "
+            + (clearGroups ? $"Đã gỡ group: {(removed.Count > 0 ? string.Join(", ", removed) : "(không có)")}" : "Không gỡ group")
             + (warnings.Count > 0 ? "; Cảnh báo: " + string.Join(" | ", warnings) : ""),
             success: warnings.Count == 0);
         return warnings;
