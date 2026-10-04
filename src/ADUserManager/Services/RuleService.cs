@@ -10,14 +10,7 @@ public record ProbationStatus(DateTime AssignedAtUtc, DateTime DueAtUtc, int Day
     public int DaysOverdue => IsDue ? (int)Math.Floor((DateTime.UtcNow - DueAtUtc).TotalDays) : 0;
 }
 
-public record RuleChangeResult(List<string> Before, List<string> Removed, List<string> Kept, List<string> Warnings, string? PrimaryChange)
-{
-    public string Summary =>
-        $"đọc được {Before.Count} group: {(Before.Count > 0 ? string.Join(", ", Before) : "(trống)")}; "
-        + (PrimaryChange is not null ? $"primary: {PrimaryChange}; " : "")
-        + $"gỡ: {(Removed.Count > 0 ? string.Join(", ", Removed) : "(không)")}"
-        + (Kept.Count > 0 ? $"; giữ: {string.Join(", ", Kept)}" : "");
-}
+public record RuleChangeResult(List<string> Before, List<string> Removed, List<string> Kept, List<string> Warnings, string? PrimaryChange);
 
 public record ProbationItem(UserRuleAssignment Assignment, AccountRule Rule, ProbationStatus Status);
 

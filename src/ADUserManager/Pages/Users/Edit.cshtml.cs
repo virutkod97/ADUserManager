@@ -125,7 +125,7 @@ public class EditModel : AppPageModel
         {
             var result = await _rules.ChangeRuleAsync(sam, newRuleId.Value, moveOu, addGroups, clearGroups);
             var rule = await _rules.GetRuleAsync(newRuleId.Value);
-            FlashSuccess($"Đã chuyển tài khoản {sam} sang rule '{rule?.Name}' ({result.Summary}).");
+            FlashSuccess($"Đã chuyển tài khoản {sam} sang rule '{rule?.Name}'.");
             FlashWarnings(result.Warnings);
         }
         catch (AdOperationException ex)
