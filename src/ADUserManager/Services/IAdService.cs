@@ -23,7 +23,10 @@ public interface IAdService
     void Unlock(string samAccountName);
 
     void MoveUser(string samAccountName, string targetOuDn);
+    // Gồm cả primary group (không có trong memberOf)
     IReadOnlyList<string> GetUserGroups(string samAccountName);
+    string GetDomainUsersDn();
+    void SetPrimaryGroup(string samAccountName, string groupDn);
     void AddToGroup(string samAccountName, string groupDn);
     void RemoveFromGroup(string samAccountName, string groupDn);
 }

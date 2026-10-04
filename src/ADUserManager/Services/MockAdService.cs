@@ -3,6 +3,7 @@ namespace ADUserManager.Services;
 public sealed class MockAdService : IAdService
 {
     private const string Nc = "DC=corp,DC=local";
+    private const string DomainUsersDn = "CN=Domain Users,CN=Users,DC=corp,DC=local";
     private readonly object _lock = new();
     private readonly Dictionary<string, (AdUser User, string Password)> _users = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<AdOu> _ous;
@@ -24,13 +25,16 @@ public sealed class MockAdService : IAdService
             ("GRP_TBP", "Trưởng bộ phận"), ("GRP_PhapChe", "Pháp chế"),
             ("baocaotbp", "Báo cáo TBP"), ("TKhop", "Tài khoản họp"),
         }.Select(g => new AdGroup($"CN={g.Name},OU=NPC,{Nc}", g.Name, g.Desc)).ToList();
+        _groups.Insert(0, new AdGroup(DomainUsersDn, "Domain Users", "Tất cả người dùng"));
+        _groups.Add(new AdGroup($"CN=DL_MayIn,OU=NPC,{Nc}", "DL_MayIn", "Domain Local - máy in", CanBePrimary: false));
 
         Seed("admin", "Quản trị viên", "Admin@123", $"CN=Users,{Nc}", "Domain Admins");
         Seed("user01", "Người dùng thường", "User@123", $"CN=Users,{Nc}");
         Seed("anhnd", "Nguyễn Đức Anh", "P@ssw0rd!", $"OU=Phong IT,OU=NPC,{Nc}", "GRP_IT", "GRP_Internet");
         Seed("hoalt", "Lê Thị Hoa", "P@ssw0rd!", $"OU=Thu viec,OU=NPC,{Nc}", "GRP_ThuViec");
         Seed("hop", "Phòng Họp", "P@ssw0rd!", $"OU=NPC,{Nc}", "baocaotbp", "GRP_Internet");
-        Seed("hop01", "Phòng Họp 01", "P@ssw0rd!", $"OU=NPC,{Nc}", "baocaotbp", "TKhop");
+        Seed("hop01", "Phòng Họp 01", "P@ssw0rd!", $"OU=NPC,{Nc}", "TKhop");
+        _users["hop01"].User.PrimaryGroupDn = _groups.First(g => g.Name == "baocaotbp").DistinguishedName;
         Seed("disabled01", "Nhân viên Nghỉ việc", "P@ssw0rd!", $"OU=NPC,{Nc}");
         _users["disabled01"].User.Enabled = false;
         Seed("binhtv", "Trần Văn Bình", "P@ssw0rd!", $"OU=Phong Ke toan,OU=NPC,{Nc}", "GRP_KeToan");
@@ -52,6 +56,7 @@ public sealed class MockAdService : IAdService
             WhenCreated = DateTime.UtcNow.AddDays(-30),
             PasswordLastSet = DateTime.UtcNow.AddDays(-10),
             MemberOf = groups.Select(g => _groups.First(x => x.Name == g).DistinguishedName).ToList(),
+            PrimaryGroupDn = DomainUsersDn,
         };
         _users[sam] = (u, pw);
     }
@@ -104,7 +109,13 @@ public sealed class MockAdService : IAdService
 
     public AdUser? GetUser(string samAccountName)
     {
-        lock (_lock) return _users.TryGetValue(samAccountName, out var v) ? v.User.Clone() : null;
+        lock (_lock)
+        {
+            if (!_users.TryGetValue(samAccountName, out var v)) return null;
+            var u = v.User.Clone();
+            if (u.PrimaryGroupDn is not null && !u.MemberOf.Contains(u.PrimaryGroupDn)) u.MemberOf.Add(u.PrimaryGroupDn);
+            return u;
+        }
     }
 
     public bool UserExists(string samAccountName)
@@ -135,6 +146,7 @@ public sealed class MockAdService : IAdService
                 Enabled = r.Enabled,
                 WhenCreated = DateTime.UtcNow,
                 PasswordLastSet = r.MustChangePassword ? null : DateTime.UtcNow,
+                PrimaryGroupDn = DomainUsersDn,
             };
             _users[u.SamAccountName] = (u, r.Password);
             return u.Clone();
@@ -197,7 +209,31 @@ public sealed class MockAdService : IAdService
 
     public IReadOnlyList<string> GetUserGroups(string sam)
     {
-        lock (_lock) return Get(sam).User.MemberOf.ToList();
+        lock (_lock)
+        {
+            var u = Get(sam).User;
+            return u.MemberOf.Append(u.PrimaryGroupDn!).Where(g => g is not null).Distinct().ToList();
+        }
+    }
+
+    public string GetDomainUsersDn() => DomainUsersDn;
+
+    // Giống AD: phải là thành viên mới đặt làm primary; group primary cũ trở thành thành viên thường
+    public void SetPrimaryGroup(string sam, string groupDn)
+    {
+        lock (_lock)
+        {
+            var u = Get(sam).User;
+            if (string.Equals(u.PrimaryGroupDn, groupDn, StringComparison.OrdinalIgnoreCase)) return;
+            var g = _groups.FirstOrDefault(x => string.Equals(x.DistinguishedName, groupDn, StringComparison.OrdinalIgnoreCase))
+                    ?? throw new AdOperationException($"Không tìm thấy group '{DnHelper.ToPath(groupDn)}'.");
+            if (!g.CanBePrimary) throw new AdOperationException($"Group '{g.Name}' không dùng được làm primary group (chỉ Global/Universal).");
+            if (!u.MemberOf.Contains(groupDn, StringComparer.OrdinalIgnoreCase))
+                throw new AdOperationException("The server is unwilling to process the request. (tài khoản chưa là thành viên của group)");
+            u.MemberOf.RemoveAll(x => string.Equals(x, groupDn, StringComparison.OrdinalIgnoreCase));
+            if (u.PrimaryGroupDn is not null) u.MemberOf.Add(u.PrimaryGroupDn);
+            u.PrimaryGroupDn = groupDn;
+        }
     }
 
     public void AddToGroup(string sam, string groupDn)
@@ -207,12 +243,19 @@ public sealed class MockAdService : IAdService
             if (_groups.All(g => g.DistinguishedName != groupDn))
                 throw new AdOperationException($"Không tìm thấy group '{DnHelper.ToPath(groupDn)}'.");
             var u = Get(sam).User;
+            if (string.Equals(u.PrimaryGroupDn, groupDn, StringComparison.OrdinalIgnoreCase)) return;
             if (!u.MemberOf.Contains(groupDn, StringComparer.OrdinalIgnoreCase)) u.MemberOf.Add(groupDn);
         }
     }
 
     public void RemoveFromGroup(string sam, string groupDn)
     {
-        lock (_lock) Get(sam).User.MemberOf.RemoveAll(g => string.Equals(g, groupDn, StringComparison.OrdinalIgnoreCase));
+        lock (_lock)
+        {
+            var u = Get(sam).User;
+            if (string.Equals(u.PrimaryGroupDn, groupDn, StringComparison.OrdinalIgnoreCase))
+                throw new AdOperationException($"Không gỡ được '{sam}' khỏi group '{DnHelper.RdnValue(DnHelper.Split(groupDn)[0])}': The server is unwilling to process the request. (đang là primary group)");
+            u.MemberOf.RemoveAll(g => string.Equals(g, groupDn, StringComparison.OrdinalIgnoreCase));
+        }
     }
 }

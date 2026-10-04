@@ -10,10 +10,11 @@ public record ProbationStatus(DateTime AssignedAtUtc, DateTime DueAtUtc, int Day
     public int DaysOverdue => IsDue ? (int)Math.Floor((DateTime.UtcNow - DueAtUtc).TotalDays) : 0;
 }
 
-public record RuleChangeResult(List<string> Before, List<string> Removed, List<string> Kept, List<string> Warnings)
+public record RuleChangeResult(List<string> Before, List<string> Removed, List<string> Kept, List<string> Warnings, string? PrimaryChange)
 {
     public string Summary =>
         $"đọc được {Before.Count} group: {(Before.Count > 0 ? string.Join(", ", Before) : "(trống)")}; "
+        + (PrimaryChange is not null ? $"primary: {PrimaryChange}; " : "")
         + $"gỡ: {(Removed.Count > 0 ? string.Join(", ", Removed) : "(không)")}"
         + (Kept.Count > 0 ? $"; giữ: {string.Join(", ", Kept)}" : "");
 }
@@ -59,6 +60,11 @@ public class RuleService
         {
             rule.OuDn = "";
             rule.IsProbation = false;
+            rule.PrimaryGroupDn = null;
+        }
+        else if (!string.IsNullOrEmpty(rule.PrimaryGroupDn) && !rule.GroupDns.Contains(rule.PrimaryGroupDn, StringComparer.OrdinalIgnoreCase))
+        {
+            rule.GroupDns.Add(rule.PrimaryGroupDn);
         }
         else if (string.IsNullOrWhiteSpace(rule.OuDn))
         {
@@ -74,7 +80,7 @@ public class RuleService
         await _audit.LogAsync(isNew ? "Rule.Create" : "Rule.Update", rule.Name,
             rule.IsPermission
                 ? $"Rule phân quyền; Groups: {string.Join("; ", rule.GroupDns)}"
-                : $"Rule chính; OU: {rule.OuDn}; Groups: {string.Join("; ", rule.GroupDns)}; Thử việc: {(rule.IsProbation ? $"có ({rule.ProbationDays} ngày)" : "không")}");
+                : $"Rule chính; OU: {rule.OuDn}; Groups: {string.Join("; ", rule.GroupDns)}; Primary: {rule.PrimaryGroupDn ?? "Domain Users"}; Thử việc: {(rule.IsProbation ? $"có ({rule.ProbationDays} ngày)" : "không")}");
     }
 
     public async Task DeleteRuleAsync(int id)
@@ -171,6 +177,12 @@ public class RuleService
             catch (AdOperationException ex) { warnings.Add(ex.Message); }
         }
 
+        if (!string.IsNullOrEmpty(rule.PrimaryGroupDn))
+        {
+            try { _ad.SetPrimaryGroup(user.SamAccountName, rule.PrimaryGroupDn); }
+            catch (AdOperationException ex) { warnings.Add(ex.Message); }
+        }
+
         await UpsertAssignmentAsync(user.SamAccountName, rule.Id);
         foreach (var pr in permRules)
             warnings.AddRange(await GrantPermissionAsync(user.SamAccountName, pr));
@@ -181,15 +193,18 @@ public class RuleService
         return (user, warnings);
     }
 
-    // clearGroups: gỡ toàn bộ group hiện có của tài khoản (trừ group rule phân quyền đang cấp) trước khi thêm group rule mới
+    // Thứ tự: lưu danh sách group cần gỡ (gồm cả primary group) → thêm group rule mới
+    // → đặt primary group theo rule (Domain Users nếu rule không chọn) → gỡ các group đã lưu.
+    // AD không cho gỡ primary group trực tiếp; sau khi đổi primary, group primary cũ thành thành viên thường.
     public async Task<RuleChangeResult> ChangeRuleAsync(string sam, int newRuleId, bool moveOu, bool addGroups, bool clearGroups)
     {
         var newRule = await GetRuleAsync(newRuleId) ?? throw new AdOperationException("Rule không tồn tại.");
         if (newRule.IsPermission) throw new AdOperationException("Rule phân quyền được gán ở mục 'Rule phân quyền', không dùng làm rule chính.");
         var current = await GetAssignmentAsync(sam);
         var oldRule = current?.Rule;
-        if (!_ad.UserExists(sam)) throw new AdOperationException($"Không tìm thấy tài khoản '{sam}'.");
+        var user = _ad.GetUser(sam) ?? throw new AdOperationException($"Không tìm thấy tài khoản '{sam}'.");
         var groupsBefore = _ad.GetUserGroups(sam);
+        var targetPrimary = string.IsNullOrEmpty(newRule.PrimaryGroupDn) ? _ad.GetDomainUsersDn() : newRule.PrimaryGroupDn;
         static string Cn(string dn) => DnHelper.RdnValue(DnHelper.Split(dn)[0]);
 
         var warnings = new List<string>();
@@ -199,30 +214,23 @@ public class RuleService
             catch (AdOperationException ex) { warnings.Add(ex.Message); }
         }
 
-        var removed = new List<string>();
         var kept = new List<string>();
+        var toRemove = new List<string>();
         if (clearGroups)
         {
             var keepReason = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (var g in newRule.GroupDns) keepReason[g] = "rule mới";
+            keepReason.TryAdd(targetPrimary, "primary group mới");
             foreach (var p in await GetUserPermissionsAsync(sam))
                 foreach (var g in p.Rule!.GroupDns) keepReason.TryAdd(g, $"rule phân quyền {p.Rule.Name}");
 
             foreach (var g in groupsBefore)
             {
-                if (keepReason.TryGetValue(g, out var why))
-                {
-                    kept.Add($"{Cn(g)} ({why})");
-                    continue;
-                }
-                try
-                {
-                    _ad.RemoveFromGroup(sam, g);
-                    removed.Add(Cn(g));
-                }
-                catch (AdOperationException ex) { warnings.Add(ex.Message); }
+                if (keepReason.TryGetValue(g, out var why)) kept.Add($"{Cn(g)} ({why})");
+                else toRemove.Add(g);
             }
         }
+
         if (addGroups)
         {
             foreach (var g in newRule.GroupDns)
@@ -232,15 +240,39 @@ public class RuleService
             }
         }
 
+        string? primaryChange = null;
+        if (!string.Equals(user.PrimaryGroupDn, targetPrimary, StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                _ad.AddToGroup(sam, targetPrimary);
+                _ad.SetPrimaryGroup(sam, targetPrimary);
+                primaryChange = $"{(user.PrimaryGroupDn is null ? "?" : Cn(user.PrimaryGroupDn))} → {Cn(targetPrimary)}";
+            }
+            catch (AdOperationException ex) { warnings.Add(ex.Message); }
+        }
+
+        var removed = new List<string>();
+        foreach (var g in toRemove)
+        {
+            try
+            {
+                _ad.RemoveFromGroup(sam, g);
+                removed.Add(Cn(g));
+            }
+            catch (AdOperationException ex) { warnings.Add(ex.Message); }
+        }
+
         await UpsertAssignmentAsync(sam, newRule.Id);
         await _audit.LogAsync("User.ChangeRule", sam,
             $"{oldRule?.Name ?? "(chưa có)"} → {newRule.Name}; Chuyển OU: {moveOu}; Thêm group: {addGroups}; "
             + $"Group trước khi đổi: {(groupsBefore.Count > 0 ? string.Join(", ", groupsBefore.Select(Cn)) : "(trống)")}; "
+            + (primaryChange is not null ? $"Primary group: {primaryChange}; " : "")
             + (clearGroups ? $"Đã gỡ group: {(removed.Count > 0 ? string.Join(", ", removed) : "(không có)")}" : "Không gỡ group")
             + (kept.Count > 0 ? $"; Giữ: {string.Join(", ", kept)}" : "")
             + (warnings.Count > 0 ? "; Cảnh báo: " + string.Join(" | ", warnings) : ""),
             success: warnings.Count == 0);
-        return new RuleChangeResult(groupsBefore.Select(Cn).ToList(), removed, kept, warnings);
+        return new RuleChangeResult(groupsBefore.Select(Cn).ToList(), removed, kept, warnings, primaryChange);
     }
 
     public async Task DeleteUserAsync(string sam)

@@ -25,6 +25,9 @@ public class AccountRule
 
     public List<string> GroupDns { get; set; } = new();
 
+    [MaxLength(1000)]
+    public string? PrimaryGroupDn { get; set; }
+
     public bool IsProbation { get; set; }
 
     [Range(1, 3650)]

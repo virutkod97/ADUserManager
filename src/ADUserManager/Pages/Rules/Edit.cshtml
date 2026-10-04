@@ -72,6 +72,19 @@
         </div>
     </div>
 
+    <label class="field" data-main-only>
+        <span>Primary group</span>
+        <select asp-for="Input.PrimaryGroupDn">
+            <option value="">Domain Users (mặc định)</option>
+            @foreach (var g in Model.Groups.Where(g => g.CanBePrimary && g.Name != "Domain Users"))
+            {
+                <option value="@g.DistinguishedName" selected="@(string.Equals(g.DistinguishedName, Model.Input.PrimaryGroupDn, StringComparison.OrdinalIgnoreCase))">@g.Name</option>
+            }
+        </select>
+        <span class="muted small">Khi tạo tài khoản hoặc đổi sang rule này, primary group của tài khoản được đặt thành group này (tự thêm vào danh sách group của rule nếu chưa tick). Chỉ group bảo mật Global/Universal.</span>
+        <span asp-validation-for="Input.PrimaryGroupDn" class="field-err"></span>
+    </label>
+
     <div class="probation-box" data-main-only>
         <label class="check">
             <input type="checkbox" asp-for="Input.IsProbation" data-toggle-target="#probation-days" />

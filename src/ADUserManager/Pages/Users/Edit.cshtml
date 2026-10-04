@@ -193,7 +193,8 @@
                 <div>
                     @foreach (var g in u.MemberOf.OrderBy(x => x))
                     {
-                        <span class="chip" title="@g">@DnHelper.RdnValue(DnHelper.Split(g)[0])</span>
+                        var isPrimary = string.Equals(g, u.PrimaryGroupDn, StringComparison.OrdinalIgnoreCase);
+                        <span class="chip @(isPrimary ? "chip-primary" : "")" title="@g@(isPrimary ? " (primary group)" : "")">@DnHelper.RdnValue(DnHelper.Split(g)[0])@(isPrimary ? " · primary" : "")</span>
                     }
                 </div>
             }

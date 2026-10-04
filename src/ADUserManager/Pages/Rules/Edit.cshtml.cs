@@ -32,6 +32,8 @@ public class EditModel : AppPageModel
 
         public List<string> GroupDns { get; set; } = new();
 
+        public string? PrimaryGroupDn { get; set; }
+
         public bool IsProbation { get; set; }
 
         [Range(1, 3650, ErrorMessage = "Số ngày từ 1 đến 3650")]
@@ -66,7 +68,7 @@ public class EditModel : AppPageModel
             Input = new InputModel
             {
                 Id = r.Id, Kind = r.Kind, Name = r.Name, Description = r.Description, OuDn = r.OuDn,
-                GroupDns = r.GroupDns.ToList(), IsProbation = r.IsProbation, ProbationDays = r.ProbationDays,
+                GroupDns = r.GroupDns.ToList(), PrimaryGroupDn = r.PrimaryGroupDn, IsProbation = r.IsProbation, ProbationDays = r.ProbationDays,
             };
         }
         LoadLookups();
@@ -79,6 +81,13 @@ public class EditModel : AppPageModel
             ModelState.AddModelError("Input.OuDn", "Chọn OU");
         if (Input.Kind == RuleKind.Permission && Input.GroupDns.Count == 0)
             ModelState.AddModelError("", "Rule phân quyền phải có ít nhất 1 group.");
+        if (Input.Kind == RuleKind.Main && !string.IsNullOrEmpty(Input.PrimaryGroupDn))
+        {
+            LoadLookups();
+            var g = Groups.FirstOrDefault(x => string.Equals(x.DistinguishedName, Input.PrimaryGroupDn, StringComparison.OrdinalIgnoreCase));
+            if (g is null || !g.CanBePrimary)
+                ModelState.AddModelError("Input.PrimaryGroupDn", "Group này không dùng được làm primary group (chỉ group bảo mật Global/Universal).");
+        }
         if (!ModelState.IsValid)
         {
             LoadLookups();
@@ -97,6 +106,7 @@ public class EditModel : AppPageModel
         rule.Description = Input.Description?.Trim();
         rule.OuDn = Input.OuDn ?? "";
         rule.GroupDns = Input.GroupDns.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        rule.PrimaryGroupDn = string.IsNullOrWhiteSpace(Input.PrimaryGroupDn) ? null : Input.PrimaryGroupDn;
         rule.IsProbation = Input.IsProbation;
         rule.ProbationDays = Input.ProbationDays;
 

@@ -24,6 +24,10 @@ public static class SchemaUpgrader
             "CREATE INDEX IF NOT EXISTS \"IX_PermissionAssignments_RuleId\" ON \"PermissionAssignments\" (\"RuleId\")",
             "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_PermissionAssignments_SamAccountName_RuleId\" ON \"PermissionAssignments\" (\"SamAccountName\", \"RuleId\")",
         },
+        new[]
+        {
+            "ALTER TABLE \"Rules\" ADD COLUMN \"PrimaryGroupDn\" TEXT NULL",
+        },
     };
 
     public static int LatestVersion => Steps.Length;

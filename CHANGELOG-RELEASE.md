@@ -8,7 +8,13 @@
 - Giải nén bản mới và chạy lại `install.bat`. Cấu hình và dữ liệu được giữ nguyên.
 
 ## Thay đổi trong bản này
-- Sửa lỗi đổi rule chính báo "không gỡ group nào" dù tài khoản đang thuộc group: danh sách group của tài khoản giờ được
-  đọc gộp từ 3 nguồn (memberOf trong kết quả tìm kiếm, memberOf đọc trực tiếp trên tài khoản, và tìm ngược các group có
-  thành viên là tài khoản), dùng cho cả thẻ Group ở trang Sửa.
-- Thông báo sau khi đổi rule hiển thị: các group đọc được, group đã gỡ, group giữ lại kèm lý do (rule mới / rule phân quyền).
+- **Xử lý primary group khi đổi rule chính.** Nguyên nhân group cũ không bị gỡ: group đó đang là *primary group* của tài khoản
+  (không nằm trong memberOf và AD không cho gỡ trực tiếp). Đổi rule chính giờ chạy theo thứ tự:
+  1. Lưu danh sách group cần gỡ (gồm cả primary group hiện tại).
+  2. Thêm các group của rule mới.
+  3. Đặt primary group theo rule mới (luôn chuyển).
+  4. Gỡ các group đã lưu.
+- Rule chính có thêm ô **Primary group** (chỉ group bảo mật Global/Universal; để trống = Domain Users).
+  Group chọn làm primary tự được thêm vào danh sách group của rule. Tài khoản tạo mới theo rule cũng được đặt primary group này.
+- Thẻ Group ở trang Sửa tài khoản hiển thị cả primary group (đánh dấu "· primary").
+- Thông báo/nhật ký đổi rule ghi thêm thay đổi primary group.

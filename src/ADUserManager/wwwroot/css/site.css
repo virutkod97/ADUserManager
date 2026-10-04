@@ -270,3 +270,4 @@ tr.row-changed { box-shadow: inset 3px 0 0 var(--warn); }
 .bulk-actions { display: flex; gap: 8px; }
 @media (max-width: 860px) { .bulk-bar { left: 16px; right: 16px; bottom: 16px; max-width: none; } }
 .toolbar-check { align-self: center; white-space: nowrap; }
+.chip-primary { background: var(--warn-soft); color: var(--warn); font-weight: 600; }

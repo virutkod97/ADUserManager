@@ -21,6 +21,7 @@ public class AdUser
     public DateTime? LastLogon { get; set; }
     public DateTime? PasswordLastSet { get; set; }
     public List<string> MemberOf { get; set; } = new();
+    public string? PrimaryGroupDn { get; set; }
 
     public string ParentDn => DnHelper.Parent(DistinguishedName);
 
@@ -34,7 +35,8 @@ public class AdUser
 
 public record AdOu(string DistinguishedName, string Path);
 
-public record AdGroup(string DistinguishedName, string Name, string? Description);
+// AD chỉ cho group bảo mật Global/Universal làm primary group
+public record AdGroup(string DistinguishedName, string Name, string? Description, bool CanBePrimary = true);
 
 public class NewUserRequest
 {

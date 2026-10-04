@@ -1,7 +1,9 @@
 using System.DirectoryServices;
 using System.DirectoryServices.AccountManagement;
 using System.Runtime.InteropServices;
+using System.Collections.Concurrent;
 using System.Runtime.Versioning;
+using System.Security.Principal;
 using Microsoft.Extensions.Options;
 
 namespace ADUserManager.Services;
@@ -20,11 +22,13 @@ public sealed class AdService : IAdService
         "sAMAccountName", "distinguishedName", "displayName", "givenName", "sn", "userPrincipalName",
         "mail", "description", "department", "title", "telephoneNumber", "employeeID",
         "userAccountControl", "lockoutTime", "whenCreated", "lastLogonTimestamp", "pwdLastSet", "memberOf",
+        "objectSid", "primaryGroupID",
     };
 
     private readonly AdOptions _opt;
     private readonly ILogger<AdService> _log;
     private readonly Lazy<(string DefaultNc, string ConfigNc)> _rootDse;
+    private readonly ConcurrentDictionary<string, string> _dnBySid = new(StringComparer.OrdinalIgnoreCase);
 
     public AdService(IOptions<AdOptions> options, ILogger<AdService> log)
     {
@@ -205,7 +209,7 @@ public sealed class AdService : IAdService
     public IReadOnlyList<AdGroup> GetGroups() => Run("đọc danh sách group", () =>
     {
         using var root = Entry(DefaultNc);
-        using var s = new DirectorySearcher(root, "(objectCategory=group)", new[] { "distinguishedName", "cn", "description" })
+        using var s = new DirectorySearcher(root, "(objectCategory=group)", new[] { "distinguishedName", "cn", "description", "groupType" })
         {
             PageSize = 1000,
             SearchScope = SearchScope.Subtree,
@@ -215,7 +219,10 @@ public sealed class AdService : IAdService
         foreach (SearchResult r in results)
         {
             var dn = Str(r, "distinguishedName");
-            if (dn is not null) list.Add(new AdGroup(dn, Str(r, "cn") ?? dn, Str(r, "description")));
+            if (dn is null) continue;
+            var type = r.Properties.Contains("groupType") ? Convert.ToInt32(r.Properties["groupType"][0]) : 0;
+            var canBePrimary = (type & unchecked((int)0x80000000)) != 0 && (type & (0x2 | 0x8)) != 0;
+            list.Add(new AdGroup(dn, Str(r, "cn") ?? dn, Str(r, "description"), canBePrimary));
         }
         return (IReadOnlyList<AdGroup>)list.OrderBy(g => g.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
     });
@@ -278,6 +285,7 @@ public sealed class AdService : IAdService
         var r = FindOne(samAccountName);
         if (r is null) return null;
         var u = Map(r);
+        u.PrimaryGroupDn = PrimaryGroupOf(r);
         u.MemberOf = ReadMembership(samAccountName).MemberOf.OrderBy(g => g, StringComparer.OrdinalIgnoreCase).ToList();
         try
         {
@@ -482,6 +490,62 @@ public sealed class AdService : IAdService
     public IReadOnlyList<string> GetUserGroups(string samAccountName) => Run("đọc group của tài khoản", () =>
         (IReadOnlyList<string>)ReadMembership(samAccountName).MemberOf.OrderBy(g => g, StringComparer.OrdinalIgnoreCase).ToList());
 
+    private string? DnBySid(string sid) =>
+        _dnBySid.TryGetValue(sid, out var cached) ? cached : LookupDnBySid(sid);
+
+    private string? LookupDnBySid(string sid)
+    {
+        using var root = Entry(DefaultNc);
+        using var search = new DirectorySearcher(root, $"(objectSid={sid})", new[] { "distinguishedName" })
+        {
+            SearchScope = SearchScope.Subtree,
+        };
+        var dn = search.FindOne() is { } r ? Str(r, "distinguishedName") : null;
+        if (dn is not null) _dnBySid[sid] = dn;
+        return dn;
+    }
+
+    // primary group = <SID domain>-<primaryGroupID>
+    private string? PrimaryGroupOf(SearchResult r)
+    {
+        if (!r.Properties.Contains("objectSid") || r.Properties["objectSid"][0] is not byte[] sidBytes) return null;
+        if (!r.Properties.Contains("primaryGroupID")) return null;
+        var rid = Convert.ToInt32(r.Properties["primaryGroupID"][0]);
+        var domainSid = new SecurityIdentifier(sidBytes, 0).AccountDomainSid;
+        return domainSid is null ? null : DnBySid($"{domainSid.Value}-{rid}");
+    }
+
+    public string GetDomainUsersDn() => Run("tìm group Domain Users", () =>
+    {
+        using var root = Entry(DefaultNc);
+        root.RefreshCache(new[] { "objectSid" });
+        var domainSid = new SecurityIdentifier((byte[])root.Properties["objectSid"].Value!, 0);
+        return DnBySid($"{domainSid.Value}-513") ?? throw new AdOperationException("Không tìm thấy group Domain Users.");
+    });
+
+    public void SetPrimaryGroup(string samAccountName, string groupDn) => Run("đổi primary group", () =>
+    {
+        var groupName = DnHelper.RdnValue(DnHelper.Split(groupDn)[0]);
+        int token;
+        using (var grp = Entry(groupDn))
+        {
+            grp.RefreshCache(new[] { "primaryGroupToken" });
+            token = Convert.ToInt32(grp.Properties["primaryGroupToken"].Value
+                                    ?? throw new AdOperationException($"Group '{groupName}' không dùng được làm primary group (chỉ Global/Universal)."));
+        }
+
+        var r = FindOne(samAccountName) ?? throw new AdOperationException($"Không tìm thấy tài khoản '{samAccountName}'.");
+        using var user = Entry(Str(r, "distinguishedName")!);
+        user.RefreshCache(new[] { "primaryGroupID" });
+        if (Convert.ToInt32(user.Properties["primaryGroupID"].Value) == token) return;
+        user.Properties["primaryGroupID"].Value = token;
+        user.CommitChanges();
+
+        user.RefreshCache(new[] { "primaryGroupID" });
+        if (Convert.ToInt32(user.Properties["primaryGroupID"].Value) != token)
+            throw new AdOperationException($"Đã gửi lệnh đặt primary group '{groupName}' cho '{samAccountName}' nhưng kiểm tra lại chưa đổi.");
+    });
+
     // Gộp 3 nguồn: memberOf trong kết quả tìm kiếm, memberOf đọc trực tiếp trên object, và các group có member = tài khoản
     private (string UserDn, HashSet<string> MemberOf) ReadMembership(string sam)
     {
@@ -497,6 +561,8 @@ public sealed class AdService : IAdService
             foreach (var g in user.Properties["memberOf"])
                 if (g is string s) set.Add(s);
         }
+
+        if (PrimaryGroupOf(r) is { } primary) set.Add(primary);
 
         using (var root = Entry(DefaultNc))
         using (var search = new DirectorySearcher(root, $"(&(objectCategory=group)(member={DnHelper.EscapeFilter(dn)}))",
