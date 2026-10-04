@@ -54,7 +54,7 @@
         <div class="table-wrap table-tall">
         <table class="table">
             <thead>
-            <tr><th>Tài khoản</th><th>Họ tên</th><th>OU</th><th>Rule chính</th><th>Trạng thái</th><th></th></tr>
+            <tr><th>Tài khoản</th><th>Họ tên</th><th>OU</th><th>Rule chính</th><th>Đăng nhập cuối</th><th>Trạng thái</th><th></th></tr>
             </thead>
             <tbody>
             @foreach (var u in Model.Users)
@@ -82,6 +82,10 @@
                         {
                             <div>@foreach (var p in perms) { <span class="chip chip-perm" title="Rule phân quyền">@p.Rule!.Name</span> }</div>
                         }
+                    </td>
+                    <td class="nowrap small" title="@(u.LastLogon is null ? "" : u.LastLogon.ToLocalDisplay())">
+                        @if (u.LastLogon is null) { <span class="muted">Chưa đăng nhập</span> }
+                        else { @u.LastLogon.ToLocalDisplay() }
                     </td>
                     <td class="nowrap">
                         @if (u.Enabled) { <span class="badge badge-ok">Hoạt động</span> }

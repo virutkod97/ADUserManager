@@ -8,7 +8,5 @@
 - Giải nén bản mới và chạy lại `install.bat`. Cấu hình và dữ liệu được giữ nguyên.
 
 ## Thay đổi trong bản này
-- Primary group của rule chính mặc định lấy **group đầu tiên được tick** (Global/Universal) thay vì Domain Users;
-  bỏ tick group đó thì tự chuyển sang group được tick tiếp theo; vẫn chọn tay được (kể cả Domain Users).
-  Rule cũ chưa lưu primary group cũng dùng group hợp lệ đầu tiên của rule khi đổi rule / tạo tài khoản.
-- Trang sửa tài khoản: nút **Chuyển rule** và **Bỏ gán rule** cùng kích thước, nằm trên một hàng.
+- Trang Tài khoản thêm cột **Đăng nhập cuối**. Thời gian lấy giá trị mới nhất giữa `lastLogon` (chính xác, của DC đang truy vấn)
+  và `lastLogonTimestamp` (nhân bản giữa các DC nhưng có thể trễ 9–14 ngày). Tài khoản chưa đăng nhập hiện "Chưa đăng nhập".

@@ -57,6 +57,7 @@ public sealed class MockAdService : IAdService
             PasswordLastSet = DateTime.UtcNow.AddDays(-10),
             MemberOf = groups.Select(g => _groups.First(x => x.Name == g).DistinguishedName).ToList(),
             PrimaryGroupDn = DomainUsersDn,
+            LastLogon = sam == "user01" ? null : DateTime.UtcNow.AddHours(-(sam.Length * 7)),
         };
         _users[sam] = (u, pw);
     }
@@ -81,6 +82,7 @@ public sealed class MockAdService : IAdService
             var sam = username.Contains('\\') ? username.Split('\\')[1] : username.Split('@')[0];
             if (!_users.TryGetValue(sam, out var v) || v.Password != password || !v.User.Enabled)
                 return new AuthResult(AuthStatus.InvalidCredentials);
+            v.User.LastLogon = DateTime.UtcNow;
             if (!v.User.MemberOf.Any(g => g.StartsWith("CN=Domain Admins,")))
                 return new AuthResult(AuthStatus.NotAuthorized, sam);
             return new AuthResult(AuthStatus.Success, v.User.SamAccountName, v.User.DisplayName);

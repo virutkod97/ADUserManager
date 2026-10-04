@@ -21,7 +21,7 @@ public sealed class AdService : IAdService
     {
         "sAMAccountName", "distinguishedName", "displayName", "givenName", "sn", "userPrincipalName",
         "mail", "description", "department", "title", "telephoneNumber", "employeeID",
-        "userAccountControl", "lockoutTime", "whenCreated", "lastLogonTimestamp", "pwdLastSet", "memberOf",
+        "userAccountControl", "lockoutTime", "whenCreated", "lastLogon", "lastLogonTimestamp", "pwdLastSet", "memberOf",
         "objectSid", "primaryGroupID",
     };
 
@@ -616,7 +616,8 @@ public sealed class AdService : IAdService
             PasswordNeverExpires = (uac & 0x10000) != 0,
             LockedOut = Long(r, "lockoutTime") > 0,
             WhenCreated = created,
-            LastLogon = FileTime(Long(r, "lastLogonTimestamp")),
+            // lastLogon chính xác nhưng chỉ của DC đang truy vấn; lastLogonTimestamp được nhân bản nhưng trễ 9-14 ngày
+            LastLogon = FileTime(Math.Max(Long(r, "lastLogon"), Long(r, "lastLogonTimestamp"))),
             PasswordLastSet = FileTime(Long(r, "pwdLastSet")),
         };
         if (r.Properties.Contains("memberOf"))
