@@ -95,6 +95,45 @@
     refresh();
   }
 
+  // Sắp xếp bảng khi bấm tiêu đề cột: lần 1 A→Z, lần 2 Z→A; ô trống luôn nằm cuối
+  document.querySelectorAll('table[data-sortable]').forEach(function (table) {
+    var collator = new Intl.Collator('vi', { numeric: true, sensitivity: 'base' });
+    var cellValue = function (td) {
+      if (!td) return '';
+      if (td.hasAttribute('data-sort')) return td.getAttribute('data-sort');
+      var sel = td.querySelector('select');
+      if (sel) return sel.value ? sel.options[sel.selectedIndex].text : '';
+      return td.textContent.trim();
+    };
+    var headers = table.querySelectorAll('thead th[data-sort-type]');
+    headers.forEach(function (th) {
+      th.classList.add('sortable');
+      th.setAttribute('role', 'button');
+      th.setAttribute('tabindex', '0');
+      th.title = 'Bấm để sắp xếp';
+      var sort = function () {
+        var idx = Array.prototype.indexOf.call(th.parentNode.children, th);
+        var dir = th.getAttribute('aria-sort') === 'ascending' ? -1 : 1;
+        headers.forEach(function (h) { h.removeAttribute('aria-sort'); });
+        th.setAttribute('aria-sort', dir === 1 ? 'ascending' : 'descending');
+        var numeric = th.getAttribute('data-sort-type') === 'number';
+        var tbody = table.tBodies[0];
+        var rows = Array.prototype.slice.call(tbody.rows);
+        rows.sort(function (a, b) {
+          var x = cellValue(a.cells[idx]), y = cellValue(b.cells[idx]);
+          if (x === '' && y === '') return 0;
+          if (x === '') return 1;
+          if (y === '') return -1;
+          var r = numeric ? (parseFloat(x) - parseFloat(y)) : collator.compare(x, y);
+          return r * dir;
+        });
+        rows.forEach(function (r) { tbody.appendChild(r); });
+      };
+      th.addEventListener('click', sort);
+      th.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); sort(); } });
+    });
+  });
+
   var primarySel = document.querySelector('[data-primary-select]');
   if (primarySel) {
     var boxes = Array.prototype.slice.call(document.querySelectorAll('#group-list input[type=checkbox]'));

@@ -52,9 +52,17 @@
     else
     {
         <div class="table-wrap table-tall">
-        <table class="table">
+        <table class="table" data-sortable>
             <thead>
-            <tr><th>Tài khoản</th><th>Họ tên</th><th>OU</th><th>Rule chính</th><th>Đăng nhập cuối</th><th>Trạng thái</th><th></th></tr>
+            <tr>
+                <th data-sort-type="text">Tài khoản</th>
+                <th data-sort-type="text">Họ tên</th>
+                <th data-sort-type="text">OU</th>
+                <th data-sort-type="text">Rule chính</th>
+                <th data-sort-type="number">Đăng nhập cuối</th>
+                <th data-sort-type="text">Trạng thái</th>
+                <th></th>
+            </tr>
             </thead>
             <tbody>
             @foreach (var u in Model.Users)
@@ -62,7 +70,7 @@
                 var a = Model.Assignments.GetValueOrDefault(u.SamAccountName);
                 var ps = RuleService.GetProbationStatus(a);
                 <tr class="@(ps?.IsDue == true ? "row-warn" : "")">
-                    <td>
+                    <td data-sort="@u.SamAccountName">
                         <a href="/Users/Edit?sam=@Uri.EscapeDataString(u.SamAccountName)"><strong>@u.SamAccountName</strong></a>
                         <div class="muted small">@u.Email</div>
                     </td>
@@ -83,7 +91,7 @@
                             <div>@foreach (var p in perms) { <span class="chip chip-perm" title="Rule phân quyền">@p.Rule!.Name</span> }</div>
                         }
                     </td>
-                    <td class="nowrap small" title="@(u.LastLogon is null ? "" : u.LastLogon.ToLocalDisplay())">
+                    <td class="nowrap small" data-sort="@(u.LastLogon is null ? "" : new DateTimeOffset(u.LastLogon.Value.AsUtc()).ToUnixTimeSeconds().ToString())">
                         @if (u.LastLogon is null) { <span class="muted">Chưa đăng nhập</span> }
                         else { @u.LastLogon.ToLocalDisplay() }
                     </td>

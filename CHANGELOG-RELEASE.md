@@ -8,5 +8,5 @@
 - Giải nén bản mới và chạy lại `install.bat`. Cấu hình và dữ liệu được giữ nguyên.
 
 ## Thay đổi trong bản này
-- Trang Tài khoản thêm cột **Đăng nhập cuối**. Thời gian lấy giá trị mới nhất giữa `lastLogon` (chính xác, của DC đang truy vấn)
-  và `lastLogonTimestamp` (nhân bản giữa các DC nhưng có thể trễ 9–14 ngày). Tài khoản chưa đăng nhập hiện "Chưa đăng nhập".
+- Bảng Tài khoản: bấm vào tiêu đề cột để sắp xếp A→Z, bấm lần nữa để Z→A (có mũi tên ▲/▼).
+  Cột Đăng nhập cuối sắp theo thời gian; ô trống (chưa đăng nhập, chưa gán rule) luôn nằm cuối; tên tiếng Việt sắp đúng thứ tự.

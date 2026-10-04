@@ -272,3 +272,8 @@ tr.row-changed { box-shadow: inset 3px 0 0 var(--warn); }
 .toolbar-check { align-self: center; white-space: nowrap; }
 .chip-primary { background: var(--warn-soft); color: var(--warn); font-weight: 600; }
 .btn-pair > .btn { flex: 1 1 0; max-width: 200px; }
+th.sortable { cursor: pointer; user-select: none; }
+th.sortable:hover { color: var(--text); }
+th.sortable::after { content: " ⇅"; opacity: .35; }
+th.sortable[aria-sort="ascending"]::after { content: " ▲"; opacity: 1; }
+th.sortable[aria-sort="descending"]::after { content: " ▼"; opacity: 1; }
