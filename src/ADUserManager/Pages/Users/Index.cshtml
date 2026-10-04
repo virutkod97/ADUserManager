@@ -1,0 +1,95 @@
+@page
+@model ADUserManager.Pages.Users.IndexModel
+@{
+    ViewData["Title"] = "Tài khoản";
+}
+<div class="page-head">
+    <h1>Tài khoản</h1>
+    <div class="actions"><a class="btn btn-primary" href="/Users/Create">+ Tạo tài khoản</a></div>
+</div>
+
+<form method="get" class="toolbar">
+    <input type="search" name="q" value="@Model.Q" placeholder="Tìm theo tài khoản, họ tên, email..." />
+    <select name="rule">
+        <option value="">Tất cả rule</option>
+        <option value="none" selected="@(Model.RuleFilter == "none")">Chưa gán rule</option>
+        <option value="due" selected="@(Model.RuleFilter == "due")">Đến hạn chuyển rule</option>
+        @foreach (var r in Model.Rules)
+        {
+            <option value="@r.Id" selected="@(Model.RuleFilter == r.Id.ToString())">@r.Name</option>
+        }
+    </select>
+    <button class="btn" type="submit">Lọc</button>
+</form>
+
+@if (Model.LoadError is not null)
+{
+    <div class="alert alert-err">@Model.LoadError</div>
+}
+
+<section class="card">
+    <div class="card-head">
+        <span class="muted">@Model.Users.Count tài khoản@(Model.Truncated ? " (đã đạt giới hạn kết quả, hãy thu hẹp tìm kiếm)" : "")</span>
+    </div>
+    @if (Model.Users.Count == 0)
+    {
+        <p class="empty">Không có tài khoản phù hợp.</p>
+    }
+    else
+    {
+        <div class="table-wrap">
+        <table class="table">
+            <thead>
+            <tr><th>Tài khoản</th><th>Họ tên</th><th>OU</th><th>Rule</th><th>Trạng thái</th><th></th></tr>
+            </thead>
+            <tbody>
+            @foreach (var u in Model.Users)
+            {
+                var a = Model.Assignments.GetValueOrDefault(u.SamAccountName);
+                var ps = RuleService.GetProbationStatus(a);
+                <tr class="@(ps?.IsDue == true ? "row-warn" : "")">
+                    <td>
+                        <a href="/Users/Edit?sam=@Uri.EscapeDataString(u.SamAccountName)"><strong>@u.SamAccountName</strong></a>
+                        <div class="muted small">@u.Email</div>
+                    </td>
+                    <td>@u.DisplayName</td>
+                    <td class="small" title="@u.ParentDn">@DnHelper.ToPath(u.ParentDn)</td>
+                    <td>
+                        @(a?.Rule?.Name ?? "—")
+                        <partial name="_ProbationBadge" model="ps" />
+                    </td>
+                    <td class="nowrap">
+                        @if (u.Enabled) { <span class="badge badge-ok">Hoạt động</span> }
+                        else { <span class="badge badge-muted">Vô hiệu</span> }
+                        @if (u.LockedOut) { <span class="badge badge-danger">Bị khoá</span> }
+                    </td>
+                    <td class="right nowrap">
+                        <a class="btn btn-sm" href="/Users/Edit?sam=@Uri.EscapeDataString(u.SamAccountName)">Sửa</a>
+                        <a class="btn btn-sm" href="/Users/ResetPassword?sam=@Uri.EscapeDataString(u.SamAccountName)">Reset MK</a>
+                        <details class="menu">
+                            <summary class="btn btn-sm">⋯</summary>
+                            <div class="menu-body">
+                                @if (u.LockedOut)
+                                {
+                                    <form method="post" asp-page-handler="Unlock" asp-route-sam="@u.SamAccountName" asp-route-q="@Model.Q" asp-route-rule="@Model.RuleFilter">
+                                        <button type="submit">Mở khoá</button>
+                                    </form>
+                                }
+                                <form method="post" asp-page-handler="Toggle" asp-route-sam="@u.SamAccountName" asp-route-enable="@(!u.Enabled)" asp-route-q="@Model.Q" asp-route-rule="@Model.RuleFilter"
+                                      data-confirm="@(u.Enabled ? "Vô hiệu hoá" : "Kích hoạt") tài khoản @u.SamAccountName?">
+                                    <button type="submit">@(u.Enabled ? "Vô hiệu hoá" : "Kích hoạt")</button>
+                                </form>
+                                <form method="post" asp-page-handler="Delete" asp-route-sam="@u.SamAccountName" asp-route-q="@Model.Q" asp-route-rule="@Model.RuleFilter"
+                                      data-confirm="XOÁ VĨNH VIỄN tài khoản @u.SamAccountName (@u.DisplayName)? Thao tác không thể hoàn tác.">
+                                    <button type="submit" class="danger">Xoá tài khoản</button>
+                                </form>
+                            </div>
+                        </details>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+        </div>
+    }
+</section>

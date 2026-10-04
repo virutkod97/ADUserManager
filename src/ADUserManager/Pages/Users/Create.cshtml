@@ -1,0 +1,126 @@
+@page
+@model ADUserManager.Pages.Users.CreateModel
+@using System.Text.Json
+@{
+    ViewData["Title"] = "Tạo tài khoản";
+    var ruleData = Model.Rules.ToDictionary(r => r.Id.ToString(), r => new
+    {
+        ou = DnHelper.ToPath(r.OuDn),
+        groups = r.GroupDns.Select(g => DnHelper.RdnValue(DnHelper.Split(g)[0])).ToList(),
+        probation = r.IsProbation,
+        days = r.ProbationDays,
+    });
+}
+<div class="page-head">
+    <h1>Tạo tài khoản</h1>
+    <div class="actions"><a class="btn" href="/Users">← Danh sách tài khoản</a></div>
+</div>
+
+@if (Model.Rules.Count == 0)
+{
+    <div class="alert alert-warn">Chưa có rule nào. Hãy <a href="/Rules/Edit">tạo rule</a> trước để xác định OU và group cho tài khoản mới.</div>
+}
+
+<script type="application/json" id="rule-data">@Html.Raw(JsonSerializer.Serialize(ruleData))</script>
+
+<form method="post" class="card form" id="create-user-form">
+    <div asp-validation-summary="ModelOnly" class="alert alert-err"></div>
+
+    <h3>Rule</h3>
+    <label class="field">
+        <span>Rule tài khoản *</span>
+        <select asp-for="Input.RuleId" id="rule-select">
+            <option value="">— Chọn rule —</option>
+            @foreach (var r in Model.Rules)
+            {
+                <option value="@r.Id">@r.Name@(r.IsProbation ? " (thử việc)" : "")</option>
+            }
+        </select>
+        <span asp-validation-for="Input.RuleId" class="field-err"></span>
+    </label>
+    <div class="rule-preview" id="rule-preview" hidden>
+        <div><span class="muted">OU:</span> <span data-k="ou"></span></div>
+        <div><span class="muted">Group:</span> <span data-k="groups"></span></div>
+        <div data-k="probation"></div>
+    </div>
+
+    <h3>Thông tin người dùng</h3>
+    <div class="grid2">
+        <label class="field">
+            <span>Họ và tên đệm</span>
+            <input asp-for="Input.Surname" id="f-surname" placeholder="Nguyễn Đức" />
+        </label>
+        <label class="field">
+            <span>Tên *</span>
+            <input asp-for="Input.GivenName" id="f-given" placeholder="Anh" />
+            <span asp-validation-for="Input.GivenName" class="field-err"></span>
+        </label>
+        <label class="field">
+            <span>Tên hiển thị *</span>
+            <input asp-for="Input.DisplayName" id="f-display" />
+            <span asp-validation-for="Input.DisplayName" class="field-err"></span>
+        </label>
+        <label class="field">
+            <span>Tên đăng nhập (sAMAccountName) *</span>
+            <input asp-for="Input.SamAccountName" id="f-sam" autocomplete="off" />
+            <span asp-validation-for="Input.SamAccountName" class="field-err"></span>
+        </label>
+        <label class="field">
+            <span>UPN</span>
+            <div class="input-group">
+                <input id="f-upn-user" disabled />
+                <select asp-for="Input.UpnSuffix">
+                    @foreach (var s in Model.UpnSuffixes) { <option value="@s">@@@s</option> }
+                </select>
+            </div>
+        </label>
+        <label class="field">
+            <span>Email</span>
+            <input asp-for="Input.Email" type="email" />
+            <span asp-validation-for="Input.Email" class="field-err"></span>
+        </label>
+        <label class="field">
+            <span>Mã nhân viên</span>
+            <input asp-for="Input.EmployeeId" />
+        </label>
+        <label class="field">
+            <span>Điện thoại</span>
+            <input asp-for="Input.Phone" />
+        </label>
+        <label class="field">
+            <span>Phòng ban</span>
+            <input asp-for="Input.Department" />
+        </label>
+        <label class="field">
+            <span>Chức danh</span>
+            <input asp-for="Input.Title" />
+        </label>
+    </div>
+    <label class="field">
+        <span>Mô tả</span>
+        <input asp-for="Input.Description" />
+    </label>
+
+    <h3>Mật khẩu</h3>
+    <div class="grid2">
+        <label class="field">
+            <span>Mật khẩu ban đầu *</span>
+            <div class="input-group">
+                <input asp-for="Input.Password" type="text" class="mono" autocomplete="new-password" id="f-password" />
+                <button type="button" class="btn" data-generate="#f-password">Tạo ngẫu nhiên</button>
+                <button type="button" class="btn" data-copy="#f-password">Sao chép</button>
+            </div>
+            <span asp-validation-for="Input.Password" class="field-err"></span>
+        </label>
+        <div class="field">
+            <span>&nbsp;</span>
+            <label class="check"><input asp-for="Input.MustChangePassword" /> <span>Bắt đổi mật khẩu ở lần đăng nhập đầu</span></label>
+            <label class="check"><input asp-for="Input.Enabled" /> <span>Kích hoạt tài khoản ngay</span></label>
+        </div>
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary" @(Model.Rules.Count == 0 ? "disabled" : "")>Tạo tài khoản</button>
+        <a class="btn" href="/Users">Huỷ</a>
+    </div>
+</form>

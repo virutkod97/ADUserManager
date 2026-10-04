@@ -1,0 +1,34 @@
+@page
+@model LoginModel
+@{
+    ViewData["Title"] = "Đăng nhập";
+    Layout = "_LoginLayout";
+}
+<div class="login-card">
+    <div class="brand brand-center">
+        <span class="brand-mark">AD</span>
+        <div>
+            <div class="brand-name">User Manager</div>
+            <div class="brand-domain">@Model.Domain</div>
+        </div>
+    </div>
+    <p class="muted">Đăng nhập bằng tài khoản Active Directory thuộc nhóm <strong>Administrators</strong>.</p>
+    @if (Model.Error is not null)
+    {
+        <div class="alert alert-err">@Model.Error</div>
+    }
+    <form method="post">
+        <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
+        <label class="field">
+            <span>Tài khoản</span>
+            <input asp-for="Input.Username" autocomplete="username" placeholder="administrator hoặc DOMAIN\user" autofocus />
+            <span asp-validation-for="Input.Username" class="field-err"></span>
+        </label>
+        <label class="field">
+            <span>Mật khẩu</span>
+            <input asp-for="Input.Password" type="password" autocomplete="current-password" />
+            <span asp-validation-for="Input.Password" class="field-err"></span>
+        </label>
+        <button type="submit" class="btn btn-primary btn-block">Đăng nhập</button>
+    </form>
+</div>

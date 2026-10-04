@@ -1,0 +1,12 @@
+@page
+@model ErrorModel
+@{
+    ViewData["Title"] = "Lỗi";
+    Layout = "_LoginLayout";
+}
+<div class="login-card">
+    <h1>Đã xảy ra lỗi</h1>
+    <p class="muted">Yêu cầu không xử lý được. Mã tham chiếu: <code>@Model.RequestId</code></p>
+    <p>Xem chi tiết trong Windows Event Viewer (nguồn <code>ADUserManager</code>).</p>
+    <a class="btn" href="/">Về trang chủ</a>
+</div>

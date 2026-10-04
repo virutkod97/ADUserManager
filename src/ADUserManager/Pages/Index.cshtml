@@ -1,0 +1,64 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Tổng quan";
+}
+<div class="page-head">
+    <h1>Tổng quan</h1>
+    <div class="actions">
+        <a class="btn btn-primary" href="/Users/Create">+ Tạo tài khoản</a>
+        <a class="btn" href="/Rules/Edit">+ Tạo rule</a>
+    </div>
+</div>
+
+<div class="stats">
+    <div class="stat"><div class="stat-num">@Model.RuleCount</div><div class="stat-label">Rule tài khoản</div></div>
+    <div class="stat"><div class="stat-num">@Model.AssignedCount</div><div class="stat-label">Tài khoản đã gán rule</div></div>
+    <div class="stat"><div class="stat-num">@Model.Items.Count</div><div class="stat-label">Đang thử việc</div></div>
+    <div class="stat @(Model.DueCount > 0 ? "stat-warn" : "")"><div class="stat-num">@Model.DueCount</div><div class="stat-label">Đến hạn chuyển rule</div></div>
+</div>
+
+<section class="card">
+    <div class="card-head">
+        <h2>Tài khoản thử việc</h2>
+        <span class="muted">Tài khoản thuộc rule có đánh dấu "thử việc". Khi hết số ngày thử việc của rule, phần mềm nhắc chuyển rule.</span>
+    </div>
+    @if (Model.Items.Count == 0)
+    {
+        <p class="empty">Không có tài khoản nào đang thuộc rule thử việc.</p>
+    }
+    else
+    {
+        <div class="table-wrap">
+        <table class="table">
+            <thead>
+            <tr>
+                <th>Tài khoản</th>
+                <th>Họ tên</th>
+                <th>Rule hiện tại</th>
+                <th>Ngày vào rule</th>
+                <th>Số ngày</th>
+                <th>Trạng thái</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var i in Model.Items)
+            {
+                <tr class="@(i.Status.IsDue ? "row-warn" : "")">
+                    <td><a href="/Users/Edit?sam=@Uri.EscapeDataString(i.Assignment.SamAccountName)"><strong>@i.Assignment.SamAccountName</strong></a></td>
+                    <td>@(Model.Names.GetValueOrDefault(i.Assignment.SamAccountName) ?? "—")</td>
+                    <td>@i.Rule.Name</td>
+                    <td>@i.Assignment.AssignedAt.ToLocalDisplay()</td>
+                    <td>@i.Status.DaysElapsed / @i.Status.ProbationDays</td>
+                    <td><partial name="_ProbationBadge" model="i.Status" /></td>
+                    <td class="right">
+                        <a class="btn btn-sm @(i.Status.IsDue ? "btn-primary" : "")" href="/Users/Edit?sam=@Uri.EscapeDataString(i.Assignment.SamAccountName)#rule">Chuyển rule</a>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+        </div>
+    }
+</section>

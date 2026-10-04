@@ -1,0 +1,12 @@
+@model ProbationStatus?
+@if (Model is not null)
+{
+    if (Model.IsDue)
+    {
+        <span class="badge badge-danger" title="Hạn: @Model.DueAtUtc.ToLocalDisplay()">Quá hạn thử việc@(Model.DaysOverdue > 0 ? $" {Model.DaysOverdue} ngày" : "")</span>
+    }
+    else
+    {
+        <span class="badge badge-info" title="Hạn: @Model.DueAtUtc.ToLocalDisplay()">Thử việc – còn @Model.DaysRemaining ngày</span>
+    }
+}

@@ -1,0 +1,75 @@
+@page
+@model ADUserManager.Pages.Rules.EditModel
+@{
+    ViewData["Title"] = Model.Input.Id == 0 ? "Tạo rule" : "Sửa rule";
+}
+<div class="page-head">
+    <h1>@ViewData["Title"]</h1>
+    <div class="actions"><a class="btn" href="/Rules">← Danh sách rule</a></div>
+</div>
+
+@if (Model.LoadError is not null)
+{
+    <div class="alert alert-err">@Model.LoadError</div>
+}
+
+<form method="post" class="card form">
+    <input type="hidden" asp-for="Input.Id" />
+    <div asp-validation-summary="ModelOnly" class="alert alert-err"></div>
+
+    <div class="grid2">
+        <label class="field">
+            <span>Tên rule *</span>
+            <input asp-for="Input.Name" placeholder="VD: Nhân viên phòng IT" />
+            <span asp-validation-for="Input.Name" class="field-err"></span>
+        </label>
+        <label class="field">
+            <span>Mô tả</span>
+            <input asp-for="Input.Description" />
+        </label>
+    </div>
+
+    <label class="field">
+        <span>OU đích *</span>
+        <select asp-for="Input.OuDn">
+            <option value="">— Chọn OU —</option>
+            @foreach (var ou in Model.Ous)
+            {
+                <option value="@ou.DistinguishedName" selected="@(string.Equals(ou.DistinguishedName, Model.Input.OuDn, StringComparison.OrdinalIgnoreCase))">@ou.Path</option>
+            }
+        </select>
+        <span asp-validation-for="Input.OuDn" class="field-err"></span>
+    </label>
+
+    <div class="field">
+        <span>Group (tài khoản thuộc rule sẽ được thêm vào các group này)</span>
+        <input type="search" class="group-filter" data-filter-target="#group-list" placeholder="Lọc group..." />
+        <div id="group-list" class="checklist">
+            @foreach (var g in Model.Groups)
+            {
+                var isChecked = Model.Input.GroupDns.Contains(g.DistinguishedName, StringComparer.OrdinalIgnoreCase);
+                <label class="check" data-text="@g.Name.ToLowerInvariant() @(g.Description?.ToLowerInvariant())">
+                    <input type="checkbox" name="Input.GroupDns" value="@g.DistinguishedName" checked="@isChecked" />
+                    <span><strong>@g.Name</strong> <span class="muted small">@g.Description</span></span>
+                </label>
+            }
+        </div>
+    </div>
+
+    <div class="probation-box">
+        <label class="check">
+            <input type="checkbox" asp-for="Input.IsProbation" data-toggle-target="#probation-days" />
+            <span><strong>Rule thử việc</strong> – nhắc chuyển rule cho tài khoản sau một số ngày</span>
+        </label>
+        <label class="field field-inline" id="probation-days">
+            <span>Số ngày thử việc</span>
+            <input asp-for="Input.ProbationDays" type="number" min="1" max="3650" />
+            <span asp-validation-for="Input.ProbationDays" class="field-err"></span>
+        </label>
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Lưu rule</button>
+        <a class="btn" href="/Rules">Huỷ</a>
+    </div>
+</form>

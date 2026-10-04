@@ -1,0 +1,55 @@
+@page
+@model ADUserManager.Pages.Rules.IndexModel
+@{
+    ViewData["Title"] = "Rule tài khoản";
+}
+<div class="page-head">
+    <h1>Rule tài khoản</h1>
+    <div class="actions"><a class="btn btn-primary" href="/Rules/Edit">+ Tạo rule</a></div>
+</div>
+<p class="muted">Mỗi rule xác định tài khoản sẽ được đặt ở OU nào và là thành viên những group nào. Rule có đánh dấu <span class="badge badge-info">Thử việc</span> sẽ nhắc chuyển rule khi hết số ngày thử việc.</p>
+
+<section class="card">
+@if (Model.Rules.Count == 0)
+{
+    <p class="empty">Chưa có rule nào. <a href="/Rules/Edit">Tạo rule đầu tiên</a>.</p>
+}
+else
+{
+    <div class="table-wrap">
+    <table class="table">
+        <thead>
+        <tr><th>Tên rule</th><th>OU</th><th>Group</th><th>Thử việc</th><th>Số tài khoản</th><th></th></tr>
+        </thead>
+        <tbody>
+        @foreach (var r in Model.Rules)
+        {
+            <tr>
+                <td>
+                    <a href="/Rules/Edit?id=@r.Id"><strong>@r.Name</strong></a>
+                    @if (!string.IsNullOrEmpty(r.Description)) { <div class="muted small">@r.Description</div> }
+                </td>
+                <td class="small" title="@r.OuDn">@DnHelper.ToPath(r.OuDn)</td>
+                <td class="small">
+                    @foreach (var g in r.GroupDns) { <span class="chip" title="@g">@DnHelper.RdnValue(DnHelper.Split(g)[0])</span> }
+                    @if (r.GroupDns.Count == 0) { <span class="muted">—</span> }
+                </td>
+                <td>
+                    @if (r.IsProbation) { <span class="badge badge-info">✓ @r.ProbationDays ngày</span> }
+                    else { <span class="muted">—</span> }
+                </td>
+                <td><a href="/Users?rule=@r.Id">@r.Assignments.Count</a></td>
+                <td class="right nowrap">
+                    <a class="btn btn-sm" href="/Rules/Edit?id=@r.Id">Sửa</a>
+                    <form method="post" asp-page-handler="Delete" asp-route-id="@r.Id" class="inline"
+                          data-confirm="Xoá rule '@r.Name'?">
+                        <button class="btn btn-sm btn-danger" type="submit">Xoá</button>
+                    </form>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+    </div>
+}
+</section>

@@ -1,0 +1,9 @@
+bin/
+obj/
+publish/
+*.user
+.vs/
+src/ADUserManager/data/
+*.db
+*.db-shm
+*.db-wal

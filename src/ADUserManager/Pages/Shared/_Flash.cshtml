@@ -1,0 +1,20 @@
+@if (TempData["Success"] is string ok)
+{
+    <div class="alert alert-ok">@ok</div>
+}
+@if (TempData["Error"] is string err)
+{
+    <div class="alert alert-err">@err</div>
+}
+@if (TempData["Warnings"] is string warn && !string.IsNullOrEmpty(warn))
+{
+    <div class="alert alert-warn">
+        <strong>Cảnh báo:</strong>
+        <ul>
+            @foreach (var w in warn.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+            {
+                <li>@w</li>
+            }
+        </ul>
+    </div>
+}
