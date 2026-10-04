@@ -98,11 +98,9 @@ uninstall.bat -RemoveFiles    :: xoá toàn bộ (chạy trong cmd Administrator
 ## Phát hành bản mới (release)
 
 1. Sửa `<Version>` trong `src/ADUserManager/ADUserManager.csproj` và nội dung `CHANGELOG-RELEASE.md`.
-2. Commit, tạo tag và push:
-   ```bash
-   git tag v1.2.0
-   git push origin v1.2.0
-   ```
+2. Commit + push, rồi tạo release bằng **một trong hai** cách:
+   - GitHub → tab **Actions** → **Release** → **Run workflow**, nhập `1.2.0`, hoặc
+   - `git tag v1.2.0 && git push origin v1.2.0`
 3. Workflow **Release** build gói `ADUserManager-1.2.0-win-x64.zip` + `.sha256` và tạo GitHub Release.
    Các máy đang chạy sẽ thấy thông báo cập nhật trong vòng tối đa 6 giờ (hoặc bấm **Kiểm tra ngay**).
 
