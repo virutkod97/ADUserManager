@@ -10,6 +10,11 @@ public record ProbationStatus(DateTime AssignedAtUtc, DateTime DueAtUtc, int Day
     public int DaysOverdue => IsDue ? (int)Math.Floor((DateTime.UtcNow - DueAtUtc).TotalDays) : 0;
 }
 
+public record RuleChangeResult(List<string> Removed, List<string> Warnings)
+{
+    public string Summary => Removed.Count > 0 ? $"gỡ: {string.Join(", ", Removed)}" : "không gỡ group nào";
+}
+
 public record ProbationItem(UserRuleAssignment Assignment, AccountRule Rule, ProbationStatus Status);
 
 public class RuleService
@@ -174,7 +179,7 @@ public class RuleService
     }
 
     // clearGroups: gỡ toàn bộ group hiện có của tài khoản (trừ group rule phân quyền đang cấp) trước khi thêm group rule mới
-    public async Task<List<string>> ChangeRuleAsync(string sam, int newRuleId, bool moveOu, bool addGroups, bool clearGroups)
+    public async Task<RuleChangeResult> ChangeRuleAsync(string sam, int newRuleId, bool moveOu, bool addGroups, bool clearGroups)
     {
         var newRule = await GetRuleAsync(newRuleId) ?? throw new AdOperationException("Rule không tồn tại.");
         if (newRule.IsPermission) throw new AdOperationException("Rule phân quyền được gán ở mục 'Rule phân quyền', không dùng làm rule chính.");
@@ -219,7 +224,7 @@ public class RuleService
             + (clearGroups ? $"Đã gỡ group: {(removed.Count > 0 ? string.Join(", ", removed) : "(không có)")}" : "Không gỡ group")
             + (warnings.Count > 0 ? "; Cảnh báo: " + string.Join(" | ", warnings) : ""),
             success: warnings.Count == 0);
-        return warnings;
+        return new RuleChangeResult(removed, warnings);
     }
 
     public async Task DeleteUserAsync(string sam)

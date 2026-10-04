@@ -123,10 +123,10 @@ public class EditModel : AppPageModel
         }
         try
         {
-            var warnings = await _rules.ChangeRuleAsync(sam, newRuleId.Value, moveOu, addGroups, clearGroups);
+            var result = await _rules.ChangeRuleAsync(sam, newRuleId.Value, moveOu, addGroups, clearGroups);
             var rule = await _rules.GetRuleAsync(newRuleId.Value);
-            FlashSuccess($"Đã chuyển tài khoản {sam} sang rule '{rule?.Name}'.");
-            FlashWarnings(warnings);
+            FlashSuccess($"Đã chuyển tài khoản {sam} sang rule '{rule?.Name}' ({result.Summary}).");
+            FlashWarnings(result.Warnings);
         }
         catch (AdOperationException ex)
         {

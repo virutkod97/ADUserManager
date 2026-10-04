@@ -8,8 +8,6 @@
 - Giải nén bản mới và chạy lại `install.bat`. Cấu hình và dữ liệu được giữ nguyên.
 
 ## Thay đổi trong bản này
-- **Đổi rule chính giờ gỡ toàn bộ group hiện có** của tài khoản rồi mới thêm group của rule mới (áp dụng cả đổi hàng loạt
-  lẫn trang Sửa). Chỉ giữ lại group do rule phân quyền cấp; Domain Users (primary group) không bị ảnh hưởng.
-  Áp dụng cả với tài khoản trước đó chưa gán rule hoặc có group thêm tay ngoài phần mềm.
-  Nhật ký ghi rõ danh sách group đã gỡ.
-- Trang Tài khoản mặc định **chỉ hiện tài khoản đang hoạt động**; tick **Hiện cả tài khoản bị vô hiệu hoá** để xem toàn bộ.
+- Sửa lỗi đổi rule chính không gỡ được group cũ trên AD mà không báo lỗi. Thêm/gỡ group giờ ghi trực tiếp lên group
+  (IADsGroup Add/Remove, không phụ thuộc số thành viên) và **đọc lại để xác nhận**; nếu AD không gỡ/thêm được sẽ báo cảnh báo rõ ràng.
+- Thông báo sau khi đổi rule ghi rõ từng tài khoản đã gỡ những group nào.

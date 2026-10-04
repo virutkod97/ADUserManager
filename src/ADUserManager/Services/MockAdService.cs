@@ -30,6 +30,7 @@ public sealed class MockAdService : IAdService
         Seed("anhnd", "Nguyễn Đức Anh", "P@ssw0rd!", $"OU=Phong IT,OU=NPC,{Nc}", "GRP_IT", "GRP_Internet");
         Seed("hoalt", "Lê Thị Hoa", "P@ssw0rd!", $"OU=Thu viec,OU=NPC,{Nc}", "GRP_ThuViec");
         Seed("hop", "Phòng Họp", "P@ssw0rd!", $"OU=NPC,{Nc}", "baocaotbp", "GRP_Internet");
+        Seed("hop01", "Phòng Họp 01", "P@ssw0rd!", $"OU=NPC,{Nc}", "baocaotbp", "TKhop");
         Seed("disabled01", "Nhân viên Nghỉ việc", "P@ssw0rd!", $"OU=NPC,{Nc}");
         _users["disabled01"].User.Enabled = false;
         Seed("binhtv", "Trần Văn Bình", "P@ssw0rd!", $"OU=Phong Ke toan,OU=NPC,{Nc}", "GRP_KeToan");

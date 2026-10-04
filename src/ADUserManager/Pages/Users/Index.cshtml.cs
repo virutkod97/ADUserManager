@@ -87,9 +87,9 @@ public class IndexModel : AppPageModel
         {
             try
             {
-                var warnings = await _rules.ChangeRuleAsync(sam, ruleId, moveOu: true, addGroups: true, clearGroups: true);
-                ok.Add($"{sam} → {mainRules[ruleId].Name}");
-                problems.AddRange(warnings.Select(w => $"{sam}: {w}"));
+                var result = await _rules.ChangeRuleAsync(sam, ruleId, moveOu: true, addGroups: true, clearGroups: true);
+                ok.Add($"{sam} → {mainRules[ruleId].Name} ({result.Summary})");
+                problems.AddRange(result.Warnings.Select(w => $"{sam}: {w}"));
             }
             catch (AdOperationException ex)
             {
@@ -97,7 +97,7 @@ public class IndexModel : AppPageModel
             }
         }
 
-        if (ok.Count > 0) FlashSuccess($"Đã đổi rule chính cho {ok.Count}/{changes.Count} tài khoản: {string.Join(", ", ok)}.");
+        if (ok.Count > 0) FlashSuccess($"Đã đổi rule chính cho {ok.Count}/{changes.Count} tài khoản: {string.Join("; ", ok)}.");
         else FlashError("Không đổi được rule cho tài khoản nào.");
         FlashWarnings(problems);
         return Back();

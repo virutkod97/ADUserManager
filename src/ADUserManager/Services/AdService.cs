@@ -46,9 +46,12 @@ public sealed class AdService : IAdService
 
     public string DomainName => DnHelper.DomainFromDn(DefaultNc);
 
+    private string LdapPath(string dn) =>
+        "LDAP://" + (DomainOrNull is null ? "" : DomainOrNull + "/") + dn.Replace("/", "\\/");
+
     private DirectoryEntry Entry(string dn)
     {
-        var path = "LDAP://" + (DomainOrNull is null ? "" : DomainOrNull + "/") + dn.Replace("/", "\\/");
+        var path = LdapPath(dn);
         return HasCredentials
             ? new DirectoryEntry(path, _opt.Username, _opt.Password, AuthTypes)
             : new DirectoryEntry(path, null, null, AuthTypes);
@@ -434,24 +437,61 @@ public sealed class AdService : IAdService
     });
 
     public void AddToGroup(string samAccountName, string groupDn) => Run("thêm vào group", () =>
-    {
-        using var ctx = Ctx();
-        using var grp = GroupPrincipal.FindByIdentity(ctx, IdentityType.DistinguishedName, groupDn)
-                        ?? throw new AdOperationException($"Không tìm thấy group '{DnHelper.ToPath(groupDn)}'.");
-        if (!grp.Members.Contains(ctx, IdentityType.SamAccountName, samAccountName))
-        {
-            grp.Members.Add(ctx, IdentityType.SamAccountName, samAccountName);
-            grp.Save();
-        }
-    });
+        ChangeMembership(samAccountName, groupDn, add: true));
 
     public void RemoveFromGroup(string samAccountName, string groupDn) => Run("gỡ khỏi group", () =>
+        ChangeMembership(samAccountName, groupDn, add: false));
+
+    // Sửa trực tiếp thuộc tính member của group rồi đọc lại memberOf của tài khoản để xác nhận
+    private void ChangeMembership(string sam, string groupDn, bool add)
     {
-        using var ctx = Ctx();
-        using var grp = GroupPrincipal.FindByIdentity(ctx, IdentityType.DistinguishedName, groupDn);
-        if (grp is null) return;
-        if (grp.Members.Remove(ctx, IdentityType.SamAccountName, samAccountName)) grp.Save();
-    });
+        var groupName = DnHelper.RdnValue(DnHelper.Split(groupDn)[0]);
+        var (userDn, memberOf) = ReadMembership(sam);
+        if (memberOf.Contains(groupDn) == add) return;
+
+        using (var grp = Entry(groupDn))
+        {
+            try
+            {
+                _ = grp.NativeObject;
+            }
+            catch (COMException ex)
+            {
+                throw new AdOperationException($"Không mở được group '{groupName}': {ex.Message}", ex);
+            }
+            // IADsGroup.Add/Remove ghi thẳng lên AD, không phụ thuộc giới hạn 1500 giá trị khi đọc thuộc tính member
+            try
+            {
+                grp.Invoke(add ? "Add" : "Remove", LdapPath(userDn));
+            }
+            catch (System.Reflection.TargetInvocationException ex) when (ex.InnerException is not null)
+            {
+                throw new AdOperationException(
+                    $"Không {(add ? "thêm" : "gỡ")} được '{sam}' {(add ? "vào" : "khỏi")} group '{groupName}': {ex.InnerException.Message}", ex.InnerException);
+            }
+        }
+
+        var (_, after) = ReadMembership(sam);
+        if (after.Contains(groupDn) != add)
+            throw new AdOperationException(add
+                ? $"Đã gửi lệnh thêm '{sam}' vào group '{groupName}' nhưng kiểm tra lại vẫn chưa là thành viên."
+                : $"Đã gửi lệnh gỡ '{sam}' khỏi group '{groupName}' nhưng kiểm tra lại vẫn còn là thành viên.");
+    }
+
+    private (string UserDn, HashSet<string> MemberOf) ReadMembership(string sam)
+    {
+        var r = FindOne(sam) ?? throw new AdOperationException($"Không tìm thấy tài khoản '{sam}'.");
+        var dn = Str(r, "distinguishedName")!;
+        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        // Đọc trực tiếp trên object (base scope) để không dính độ trễ của kết quả tìm kiếm
+        using (var user = Entry(dn))
+        {
+            user.RefreshCache(new[] { "memberOf" });
+            foreach (var g in user.Properties["memberOf"])
+                if (g is string s) set.Add(s);
+        }
+        return (dn, set);
+    }
 
     private static string? Str(SearchResult r, string prop) =>
         r.Properties.Contains(prop) && r.Properties[prop].Count > 0 ? r.Properties[prop][0]?.ToString() : null;
