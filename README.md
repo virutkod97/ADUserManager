@@ -13,6 +13,8 @@ Website chạy dạng **Windows Service** trên máy chủ Active Directory, h�
 | **Thêm / sửa / xoá tài khoản** | Tự sinh tên hiển thị và tên đăng nhập từ họ tên tiếng Việt (VD: *Nguyễn Đức Anh* → `anhnd`), chọn UPN suffix, thông tin phòng ban, chức danh, mã NV... Vô hiệu hoá/kích hoạt, mở khoá. |
 | **Reset mật khẩu** | Sinh mật khẩu ngẫu nhiên đủ độ phức tạp, tuỳ chọn bắt đổi mật khẩu lần đăng nhập tới, mở khoá tài khoản. |
 | **Nhật ký thao tác** | Ghi lại ai làm gì, lúc nào, từ IP nào, thành công hay lỗi. |
+| **Giao diện sáng/tối** | Nút ☀/☾ ở góc dưới menu (và trang đăng nhập), nhớ lựa chọn theo trình duyệt. |
+| **Tự động cập nhật** | Kiểm tra GitHub Releases định kỳ, báo trên giao diện khi có bản mới; menu **Cập nhật → Cập nhật ngay** tải gói, kiểm tra SHA-256 và cài đè (giữ cấu hình, dữ liệu). |
 
 ## Kiến trúc
 
@@ -80,13 +82,31 @@ uninstall.bat -RemoveFiles    :: xoá toàn bộ (chạy trong cmd Administrator
   "AdminGroups": [ "S-1-5-32-544" ], // group được phép đăng nhập (SID, tên hoặc DN)
   "MaxSearchResults": 1000
 },
-"App": { "SessionTimeoutMinutes": 30 }
+"App": { "SessionTimeoutMinutes": 30 },
+"Update": {
+  "Enabled": true,                          // tự kiểm tra bản mới
+  "Repository": "virutkod97/ADUserManager", // repo GitHub (public) chứa release
+  "CheckIntervalHours": 6
+}
 ```
 
 - **Chạy service trên máy không phải DC:** đổi "Log On" của service sang một tài khoản/gMSA đã được **uỷ quyền** (Delegate Control) trên các OU cần quản lý (tạo/xoá/sửa user, reset password, sửa thành viên group), hoặc điền `Username`/`Password` (file cấu hình đã được phân quyền chỉ Administrators đọc được).
 - **Giới hạn người đăng nhập:** đổi `AdminGroups`, VD: `[ "Domain Admins", "IT-Helpdesk" ]`.
 - **Cổng/HTTPS:** `appsettings.Production.json` → `Kestrel:Endpoints`.
 - Log lỗi: **Event Viewer → Windows Logs → Application**, nguồn `ADUserManager`.
+
+## Phát hành bản mới (release)
+
+1. Sửa `<Version>` trong `src/ADUserManager/ADUserManager.csproj` và nội dung `CHANGELOG-RELEASE.md`.
+2. Commit, tạo tag và push:
+   ```bash
+   git tag v1.2.0
+   git push origin v1.2.0
+   ```
+3. Workflow **Release** build gói `ADUserManager-1.2.0-win-x64.zip` + `.sha256` và tạo GitHub Release.
+   Các máy đang chạy sẽ thấy thông báo cập nhật trong vòng tối đa 6 giờ (hoặc bấm **Kiểm tra ngay**).
+
+Tự động cập nhật cần repo **public** (API GitHub không cần token) và máy chủ ra được Internet tới `api.github.com`, `github.com`, `objects.githubusercontent.com`. Nhật ký cài đặt ở `data\update\update.log`, hiển thị ở trang **Cập nhật**.
 
 ## Cách hoạt động của cảnh báo thử việc
 

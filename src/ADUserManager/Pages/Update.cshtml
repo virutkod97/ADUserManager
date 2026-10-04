@@ -1,0 +1,82 @@
+@page
+@model UpdateModel
+@{
+    ViewData["Title"] = "Cập nhật phần mềm";
+    var u = Model.Updates;
+}
+<div class="page-head">
+    <h1>Cập nhật phần mềm</h1>
+    <div class="actions">
+        <form method="post" asp-page-handler="Check" class="inline">
+            <button type="submit" class="btn">Kiểm tra ngay</button>
+        </form>
+    </div>
+</div>
+
+<div class="grid-main">
+    <section class="card">
+        <h2>Phiên bản</h2>
+        <dl class="kv">
+            <dt>Đang dùng</dt><dd><strong>v@(u.CurrentVersion)</strong></dd>
+            <dt>Mới nhất</dt>
+            <dd>
+                @if (u.Latest is { } rel)
+                {
+                    <a href="@rel.HtmlUrl" target="_blank" rel="noopener"><strong>@rel.Tag</strong></a>
+                    @if (rel.PublishedAt is { } pub) { <span class="muted">(@pub.ToLocalDisplay())</span> }
+                }
+                else { <span class="muted">—</span> }
+            </dd>
+            <dt>Nguồn</dt><dd><a href="https://github.com/@u.Repository/releases" target="_blank" rel="noopener">github.com/@u.Repository</a></dd>
+            <dt>Kiểm tra lần cuối</dt><dd>@u.LastCheckedUtc.ToLocalDisplay()</dd>
+            <dt>Tự động kiểm tra</dt><dd>@(u.Enabled ? "Bật" : "Tắt")</dd>
+        </dl>
+
+        @if (u.LastError is not null)
+        {
+            <div class="alert alert-warn">@u.LastError</div>
+        }
+
+        @if (u.IsUpdating)
+        {
+            <div class="alert alert-info">Đang cập nhật... Service sẽ tự khởi động lại, tải lại trang sau khoảng 1 phút.</div>
+        }
+        else if (u.UpdateAvailable)
+        {
+            <div class="alert alert-info">Có phiên bản mới <strong>@u.Latest!.Tag</strong>.</div>
+            @if (u.CanApply)
+            {
+                <form method="post" asp-page-handler="Apply"
+                      data-confirm="Cập nhật lên @u.Latest!.Tag? Service sẽ khởi động lại, mọi người đang dùng sẽ bị gián đoạn khoảng 1 phút.">
+                    <button type="submit" class="btn btn-primary">Cập nhật ngay</button>
+                </form>
+                <p class="muted small">Gói được tải từ GitHub, kiểm tra SHA-256 rồi cài đè. Cấu hình và dữ liệu được giữ nguyên.</p>
+            }
+            else
+            {
+                <p class="muted">Không cập nhật tự động được (release thiếu gói <code>*-win-x64.zip</code> / <code>.sha256</code>, hoặc không chạy trên Windows). Hãy tải gói ở trang release và chạy <code>install.bat</code>.</p>
+            }
+        }
+        else if (u.Latest is not null)
+        {
+            <div class="alert alert-ok">Đang dùng phiên bản mới nhất.</div>
+        }
+    </section>
+
+    <div class="stack">
+        @if (u.Latest?.Notes is { Length: > 0 } notes)
+        {
+            <section class="card">
+                <h2>Thay đổi trong @u.Latest.Tag</h2>
+                <pre class="notes">@notes</pre>
+            </section>
+        }
+        @if (Model.Log is not null)
+        {
+            <section class="card">
+                <h2>Nhật ký cập nhật gần nhất</h2>
+                <pre class="log">@Model.Log</pre>
+            </section>
+        }
+    </div>
+</div>

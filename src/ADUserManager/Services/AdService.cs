@@ -6,9 +6,6 @@ using Microsoft.Extensions.Options;
 
 namespace ADUserManager.Services;
 
-/// <summary>
-/// Thao tác Active Directory thật qua System.DirectoryServices (chỉ chạy trên Windows).
-/// </summary>
 [SupportedOSPlatform("windows")]
 public sealed class AdService : IAdService
 {
@@ -48,8 +45,6 @@ public sealed class AdService : IAdService
     private bool HasCredentials => !string.IsNullOrWhiteSpace(_opt.Username);
 
     public string DomainName => DnHelper.DomainFromDn(DefaultNc);
-
-    // ------------------------------------------------------------------ helpers
 
     private DirectoryEntry Entry(string dn)
     {
@@ -115,8 +110,6 @@ public sealed class AdService : IAdService
 
     private void Run(string operation, Action action) => Run<object?>(operation, () => { action(); return null; });
 
-    // ------------------------------------------------------------------ authentication
-
     public AuthResult AuthenticateAdmin(string username, string password)
     {
         try
@@ -143,7 +136,7 @@ public sealed class AdService : IAdService
 
     private bool IsAdmin(PrincipalContext ctx, UserPrincipal user)
     {
-        // tokenGroups (đệ quy, bao gồm cả group BUILTIN khi truy vấn trên DC)
+        // tokenGroups đã đệ quy và gồm cả group BUILTIN khi truy vấn trên DC
         var tokenSids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         try
         {
@@ -172,7 +165,6 @@ public sealed class AdService : IAdService
                 }
                 if (tokenSids.Contains(grp.Sid.Value)) return true;
 
-                // Fallback: duyệt thành viên đệ quy
                 foreach (var m in grp.GetMembers(recursive: true))
                 {
                     using (m)
@@ -188,8 +180,6 @@ public sealed class AdService : IAdService
         }
         return false;
     }
-
-    // ------------------------------------------------------------------ lookup
 
     public IReadOnlyList<AdOu> GetOrganizationalUnits() => Run("đọc danh sách OU", () =>
     {
@@ -300,8 +290,6 @@ public sealed class AdService : IAdService
 
     public bool UserExists(string samAccountName) => Run("kiểm tra tài khoản", () => FindOne(samAccountName) is not null);
 
-    // ------------------------------------------------------------------ write
-
     public AdUser CreateUser(NewUserRequest req) => Run("tạo tài khoản", () =>
     {
         if (FindOne(req.SamAccountName) is not null)
@@ -332,7 +320,7 @@ public sealed class AdService : IAdService
             }
             catch
             {
-                // Tránh để lại tài khoản "nửa vời" (đã tạo nhưng chưa đặt được mật khẩu)
+                // Save() có thể tạo xong object rồi mới lỗi đặt mật khẩu
                 TryDeleteOrphan(req.SamAccountName);
                 throw;
             }
@@ -464,8 +452,6 @@ public sealed class AdService : IAdService
         if (grp is null) return;
         if (grp.Members.Remove(ctx, IdentityType.SamAccountName, samAccountName)) grp.Save();
     });
-
-    // ------------------------------------------------------------------ mapping
 
     private static string? Str(SearchResult r, string prop) =>
         r.Properties.Contains(prop) && r.Properties[prop].Count > 0 ? r.Properties[prop][0]?.ToString() : null;

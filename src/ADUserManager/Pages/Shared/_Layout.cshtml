@@ -1,5 +1,6 @@
 @inject RuleService Rules
 @inject IAdService Ad
+@inject UpdateService Updates
 @{
     var path = Context.Request.Path.Value ?? "/";
     string Active(string prefix) => (prefix == "/" ? path == "/" : path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) ? "active" : "";
@@ -12,6 +13,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>@ViewData["Title"] – AD User Manager</title>
+    <script src="~/js/theme.js" asp-append-version="true"></script>
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body>
@@ -31,12 +33,22 @@
             <a class="@Active("/Users")" href="/Users">Tài khoản</a>
             <a class="@Active("/Rules")" href="/Rules">Rule tài khoản</a>
             <a class="@Active("/Audit")" href="/Audit">Nhật ký thao tác</a>
+            <a class="@Active("/Update")" href="/Update">Cập nhật
+                @if (Updates.UpdateAvailable) { <span class="badge badge-warn" title="Có phiên bản mới">mới</span> }
+            </a>
         </nav>
         <div class="sidebar-foot">
             <div class="me" title="@User.Identity?.Name">@displayName</div>
-            <form method="post" asp-page="/Logout">
-                <button type="submit" class="btn btn-ghost btn-sm">Đăng xuất</button>
-            </form>
+            <div class="foot-row">
+                <form method="post" asp-page="/Logout">
+                    <button type="submit" class="btn btn-ghost btn-sm">Đăng xuất</button>
+                </form>
+                <button type="button" class="theme-toggle" data-theme-toggle aria-label="Đổi giao diện sáng/tối"></button>
+            </div>
+            <div class="version">
+                v@(Updates.CurrentVersion)
+                @if (Updates.UpdateAvailable) { <a href="/Update" class="update-dot" title="Có bản @Updates.Latest!.Tag">● có bản mới</a> }
+            </div>
         </div>
     </aside>
     <main class="content">
@@ -45,6 +57,13 @@
             <div class="alert alert-warn">
                 Có <strong>@dueCount</strong> tài khoản thử việc đã đến hạn chuyển rule.
                 <a href="/">Xem danh sách</a>
+            </div>
+        }
+        @if (Updates.UpdateAvailable && !path.StartsWith("/Update", StringComparison.OrdinalIgnoreCase))
+        {
+            <div class="alert alert-info">
+                Đã có phiên bản mới <strong>@Updates.Latest!.Tag</strong> (đang dùng v@(Updates.CurrentVersion)).
+                <a href="/Update">Xem và cập nhật</a>
             </div>
         }
         <partial name="_Flash" />

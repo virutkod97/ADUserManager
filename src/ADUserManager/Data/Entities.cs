@@ -2,9 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace ADUserManager.Data;
 
-/// <summary>
-/// Rule tài khoản: quy định tài khoản thuộc rule sẽ nằm ở OU nào và là thành viên những group nào.
-/// </summary>
 public class AccountRule
 {
     public int Id { get; set; }
@@ -15,14 +12,11 @@ public class AccountRule
     [MaxLength(500)]
     public string? Description { get; set; }
 
-    /// <summary>DistinguishedName của OU đích.</summary>
     [Required, MaxLength(1000)]
     public string OuDn { get; set; } = "";
 
-    /// <summary>Danh sách DistinguishedName các group.</summary>
     public List<string> GroupDns { get; set; } = new();
 
-    /// <summary>Rule thử việc: sau <see cref="ProbationDays"/> ngày sẽ cảnh báo chuyển rule.</summary>
     public bool IsProbation { get; set; }
 
     [Range(1, 3650)]
@@ -34,9 +28,6 @@ public class AccountRule
     public List<UserRuleAssignment> Assignments { get; set; } = new();
 }
 
-/// <summary>
-/// Ghi nhận tài khoản AD đang thuộc rule nào và từ thời điểm nào (dùng để tính hạn thử việc).
-/// </summary>
 public class UserRuleAssignment
 {
     public int Id { get; set; }

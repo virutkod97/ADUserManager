@@ -1,0 +1,30 @@
+name: Release
+
+on:
+  push:
+    tags: [ "v*.*.*" ]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Publish package
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart("v")
+          ./scripts/publish.ps1 -Version $version -Package
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: AD User Manager ${{ github.ref_name }}
+          body_path: CHANGELOG-RELEASE.md
+          files: |
+            publish/ADUserManager-*-win-x64.zip
+            publish/ADUserManager-*-win-x64.zip.sha256

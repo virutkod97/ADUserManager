@@ -1,14 +1,12 @@
 (function () {
   'use strict';
 
-  // Xác nhận trước khi submit form có data-confirm
   document.addEventListener('submit', function (e) {
     var f = e.target;
     var msg = f.getAttribute && f.getAttribute('data-confirm');
     if (msg && !window.confirm(msg)) e.preventDefault();
   }, true);
 
-  // Sinh mật khẩu ngẫu nhiên đáp ứng độ phức tạp của AD
   function generatePassword(len) {
     var sets = ['ABCDEFGHJKLMNPQRSTUVWXYZ', 'abcdefghijkmnpqrstuvwxyz', '23456789', '!@#$%&*?-_+='];
     var all = sets.join('');
@@ -16,7 +14,6 @@
     crypto.getRandomValues(rnd);
     var chars = sets.map(function (s, i) { return s[rnd[i] % s.length]; });
     for (var i = sets.length; i < len; i++) chars.push(all[rnd[i] % all.length]);
-    // trộn Fisher–Yates
     var sh = new Uint32Array(chars.length);
     crypto.getRandomValues(sh);
     for (var j = chars.length - 1; j > 0; j--) {
@@ -46,7 +43,6 @@
     });
   });
 
-  // Lọc danh sách checkbox
   document.querySelectorAll('[data-filter-target]').forEach(function (input) {
     var list = document.querySelector(input.getAttribute('data-filter-target'));
     input.addEventListener('input', function () {
@@ -57,7 +53,6 @@
     });
   });
 
-  // Ẩn/hiện phần tử theo checkbox
   document.querySelectorAll('[data-toggle-target]').forEach(function (cb) {
     var target = document.querySelector(cb.getAttribute('data-toggle-target'));
     var sync = function () { if (target) target.hidden = !cb.checked; };
@@ -65,7 +60,6 @@
     sync();
   });
 
-  // ---------------- Trang tạo tài khoản
   var form = document.getElementById('create-user-form');
   if (form) {
     var ruleData = JSON.parse(document.getElementById('rule-data').textContent || '{}');
@@ -90,11 +84,9 @@
     ruleSelect.addEventListener('change', showRule);
     showRule();
 
-    // Bỏ dấu tiếng Việt
     var strip = function (s) {
       return s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
     };
-    // Nguyễn Đức + Anh => anhnd
     var suggestSam = function () {
       var g = strip(given.value.trim()).toLowerCase().replace(/[^a-z0-9]/g, '');
       var initials = strip(surname.value.trim()).toLowerCase().split(/\s+/)

@@ -12,7 +12,6 @@ public record ProbationStatus(DateTime AssignedAtUtc, DateTime DueAtUtc, int Day
 
 public record ProbationItem(UserRuleAssignment Assignment, AccountRule Rule, ProbationStatus Status);
 
-/// <summary>Nghiệp vụ: rule tài khoản, gán rule cho user, theo dõi thử việc.</summary>
 public class RuleService
 {
     private readonly AppDbContext _db;
@@ -25,8 +24,6 @@ public class RuleService
         _ad = ad;
         _audit = audit;
     }
-
-    // ------------------------------------------------------------- rules
 
     public Task<List<AccountRule>> GetRulesAsync() =>
         _db.Rules.AsNoTracking().Include(r => r.Assignments).OrderBy(r => r.Name).ToListAsync();
@@ -60,8 +57,6 @@ public class RuleService
         await _db.SaveChangesAsync();
         await _audit.LogAsync("Rule.Delete", rule.Name);
     }
-
-    // ------------------------------------------------------------- assignments / probation
 
     public async Task<Dictionary<string, UserRuleAssignment>> GetAssignmentsAsync()
     {
@@ -116,9 +111,6 @@ public class RuleService
         await _db.SaveChangesAsync();
     }
 
-    // ------------------------------------------------------------- user operations
-
-    /// <summary>Tạo tài khoản theo rule: đặt vào OU của rule và thêm vào các group của rule.</summary>
     public async Task<(AdUser User, List<string> Warnings)> CreateUserAsync(NewUserRequest req, int ruleId)
     {
         var rule = await GetRuleAsync(ruleId) ?? throw new AdOperationException("Rule không tồn tại.");
@@ -148,10 +140,6 @@ public class RuleService
         return (user, warnings);
     }
 
-    /// <summary>
-    /// Chuyển tài khoản sang rule mới: di chuyển OU, thêm group của rule mới, gỡ group của rule cũ
-    /// (chỉ những group không có trong rule mới).
-    /// </summary>
     public async Task<List<string>> ChangeRuleAsync(string sam, int newRuleId, bool moveOu, bool addGroups, bool removeOldGroups)
     {
         var newRule = await GetRuleAsync(newRuleId) ?? throw new AdOperationException("Rule không tồn tại.");

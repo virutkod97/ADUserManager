@@ -77,7 +77,6 @@ public record AuthResult(AuthStatus Status, string? SamAccountName = null, strin
     public bool Success => Status == AuthStatus.Success;
 }
 
-/// <summary>Lỗi nghiệp vụ AD, thông điệp đã thân thiện để hiển thị cho người dùng.</summary>
 public class AdOperationException : Exception
 {
     public AdOperationException(string message, Exception? inner = null) : base(message, inner) { }

@@ -2,7 +2,6 @@ using System.Collections.Concurrent;
 
 namespace ADUserManager.Services;
 
-/// <summary>Chặn tạm thời khi đăng nhập sai nhiều lần (theo IP + tên đăng nhập).</summary>
 public class LoginThrottle
 {
     private const int MaxFailures = 5;

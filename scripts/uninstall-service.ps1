@@ -1,7 +1,6 @@
 ﻿<#
 .SYNOPSIS
-  Gỡ service ADUserManager. Mặc định GIỮ LẠI thư mục cài đặt (dữ liệu rule, nhật ký).
-  Thêm -RemoveFiles để xoá toàn bộ.
+  Gỡ service ADUserManager, mặc định giữ lại thư mục cài đặt. Thêm -RemoveFiles để xoá toàn bộ.
 #>
 param(
     [string]$InstallDir = "$env:ProgramFiles\ADUserManager",

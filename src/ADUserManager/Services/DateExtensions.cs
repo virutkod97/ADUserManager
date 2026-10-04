@@ -2,7 +2,7 @@ namespace ADUserManager.Services;
 
 public static class DateExtensions
 {
-    /// <summary>SQLite trả về DateTime Kind=Unspecified; mọi thời điểm trong DB đều lưu dạng UTC.</summary>
+    // SQLite trả về Kind=Unspecified; mọi thời điểm trong DB đều là UTC.
     public static DateTime AsUtc(this DateTime d) =>
         d.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(d, DateTimeKind.Utc) : d.ToUniversalTime();
 

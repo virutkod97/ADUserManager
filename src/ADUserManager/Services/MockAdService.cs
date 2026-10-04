@@ -1,9 +1,5 @@
 namespace ADUserManager.Services;
 
-/// <summary>
-/// AD giả lập trong bộ nhớ – CHỈ dùng khi phát triển/chạy thử trên máy không có AD.
-/// Đăng nhập: admin / Admin@123 (có quyền), user01 / User@123 (không có quyền).
-/// </summary>
 public sealed class MockAdService : IAdService
 {
     private const string Nc = "DC=corp,DC=local";

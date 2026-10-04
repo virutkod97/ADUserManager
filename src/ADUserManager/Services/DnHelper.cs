@@ -4,7 +4,6 @@ namespace ADUserManager.Services;
 
 public static class DnHelper
 {
-    /// <summary>Tách DN thành các RDN, tôn trọng ký tự escape '\'.</summary>
     public static List<string> Split(string dn)
     {
         var parts = new List<string>();
@@ -52,7 +51,6 @@ public static class DnHelper
         return sb.ToString();
     }
 
-    /// <summary>Escape giá trị dùng trong RDN (vd: CN=Nguyen\, Van A).</summary>
     public static string EscapeRdnValue(string v)
     {
         var sb = new StringBuilder();
@@ -64,13 +62,11 @@ public static class DnHelper
         return sb.ToString().Trim();
     }
 
-    /// <summary>DC=corp,DC=local -> corp.local</summary>
     public static string DomainFromDn(string dn) =>
         string.Join(".", Split(dn)
             .Where(p => p.StartsWith("DC=", StringComparison.OrdinalIgnoreCase))
             .Select(RdnValue));
 
-    /// <summary>OU=Ke toan,OU=HN,DC=corp,DC=local -> corp.local/HN/Ke toan</summary>
     public static string ToPath(string dn)
     {
         if (string.IsNullOrEmpty(dn)) return "";
@@ -83,7 +79,6 @@ public static class DnHelper
         return string.Join("/", new[] { domain }.Concat(names));
     }
 
-    /// <summary>Escape giá trị dùng trong LDAP filter (RFC 4515).</summary>
     public static string EscapeFilter(string v)
     {
         var sb = new StringBuilder();

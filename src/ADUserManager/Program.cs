@@ -4,18 +4,20 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Encodings.Web;
+using System.Text.Unicode;
 using Microsoft.Extensions.Hosting.WindowsServices;
+using Microsoft.Extensions.WebEncoders;
 
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {
     Args = args,
-    // Khi chạy dạng Windows Service, thư mục làm việc là C:\Windows\System32 → dùng thư mục chứa exe.
+    // Service chạy với thư mục làm việc C:\Windows\System32
     ContentRootPath = WindowsServiceHelpers.IsWindowsService() ? AppContext.BaseDirectory : default,
 });
 
 builder.Host.UseWindowsService(o => o.ServiceName = "ADUserManager");
 
-// ---------------------------------------------------------------- data
 var dataDir = Path.Combine(builder.Environment.ContentRootPath, "data");
 Directory.CreateDirectory(dataDir);
 
@@ -29,7 +31,6 @@ var dp = builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(dataDir, "keys")));
 if (OperatingSystem.IsWindows()) dp.ProtectKeysWithDpapi(protectToLocalMachine: true);
 
-// ---------------------------------------------------------------- Active Directory
 builder.Services.Configure<AdOptions>(builder.Configuration.GetSection("ActiveDirectory"));
 var adOptions = builder.Configuration.GetSection("ActiveDirectory").Get<AdOptions>() ?? new AdOptions();
 if (adOptions.UseMock && builder.Environment.IsDevelopment())
@@ -51,7 +52,11 @@ builder.Services.AddScoped<AuditService>();
 builder.Services.AddScoped<RuleService>();
 builder.Services.AddSingleton<LoginThrottle>();
 
-// ---------------------------------------------------------------- auth
+builder.Services.Configure<UpdateOptions>(builder.Configuration.GetSection("Update"));
+builder.Services.AddHttpClient();
+builder.Services.AddSingleton<UpdateService>();
+builder.Services.AddHostedService<UpdateCheckWorker>();
+
 var sessionMinutes = builder.Configuration.GetValue("App:SessionTimeoutMinutes", 30);
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(o =>
@@ -80,6 +85,7 @@ builder.Services.AddRazorPages(o =>
     o.Conventions.AllowAnonymousToPage("/Login");
     o.Conventions.AllowAnonymousToPage("/Error");
 });
+builder.Services.Configure<WebEncoderOptions>(o => o.TextEncoderSettings = new TextEncoderSettings(UnicodeRanges.All));
 builder.Services.AddAntiforgery(o =>
 {
     o.Cookie.Name = "ADUM.AF";
