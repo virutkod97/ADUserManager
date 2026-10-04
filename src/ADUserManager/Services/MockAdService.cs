@@ -29,6 +29,7 @@ public sealed class MockAdService : IAdService
         _groups.Add(new AdGroup($"CN=DL_MayIn,OU=NPC,{Nc}", "DL_MayIn", "Domain Local - máy in", CanBePrimary: false));
 
         Seed("admin", "Quản trị viên", "Admin@123", $"CN=Users,{Nc}", "Domain Admins");
+        Seed("Administrator", "Administrator", "Admin@123", $"CN=Users,{Nc}", "Domain Admins");
         Seed("user01", "Người dùng thường", "User@123", $"CN=Users,{Nc}");
         Seed("anhnd", "Nguyễn Đức Anh", "P@ssw0rd!", $"OU=Phong IT,OU=NPC,{Nc}", "GRP_IT", "GRP_Internet");
         Seed("hoalt", "Lê Thị Hoa", "P@ssw0rd!", $"OU=Thu viec,OU=NPC,{Nc}", "GRP_ThuViec");
@@ -63,7 +64,8 @@ public sealed class MockAdService : IAdService
     }
 
     private (AdUser User, string Password) Get(string sam) =>
-        _users.TryGetValue(sam, out var v) ? v : throw new AdOperationException($"Không tìm thấy tài khoản '{sam}'.");
+        ProtectedAccounts.IsProtectedName(sam) ? throw new AdOperationException(ProtectedAccounts.Message)
+        : _users.TryGetValue(sam, out var v) ? v : throw new AdOperationException($"Không tìm thấy tài khoản '{sam}'.");
 
     private static void CheckPassword(string pw)
     {
@@ -98,6 +100,7 @@ public sealed class MockAdService : IAdService
         lock (_lock)
         {
             return _users.Values.Select(v => v.User)
+                .Where(u => !ProtectedAccounts.IsProtectedName(u.SamAccountName))
                 .Where(u => string.IsNullOrWhiteSpace(query)
                             || u.SamAccountName.Contains(query, StringComparison.OrdinalIgnoreCase)
                             || (u.DisplayName ?? "").Contains(query, StringComparison.OrdinalIgnoreCase)
@@ -114,6 +117,7 @@ public sealed class MockAdService : IAdService
         lock (_lock)
         {
             if (!_users.TryGetValue(samAccountName, out var v)) return null;
+            if (ProtectedAccounts.IsProtectedName(samAccountName)) throw new AdOperationException(ProtectedAccounts.Message);
             var u = v.User.Clone();
             if (u.PrimaryGroupDn is not null && !u.MemberOf.Contains(u.PrimaryGroupDn)) u.MemberOf.Add(u.PrimaryGroupDn);
             return u;

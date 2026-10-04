@@ -84,9 +84,16 @@
                     <dt>Từ ngày</dt><dd>@Model.Assignment.AssignedAt.ToLocalDisplay() (@Model.Assignment.AssignedBy)</dd>
                     @if (ps is not null)
                     {
-                        <dt>Hạn thử việc</dt><dd>@ps.DueAtUtc.ToLocalDisplay()</dd>
+                        <dt>Hạn thử việc</dt><dd>@ps.DueAtUtc.ToLocalDisplay() (@ps.DaysElapsed/@ps.ProbationDays ngày)</dd>
                     }
                 </dl>
+                @if (ps is not null)
+                {
+                    <form method="post" asp-page-handler="ResetProbation" asp-route-sam="@u.SamAccountName" class="reset-probation"
+                          data-confirm="Đếm lại thử việc cho @u.SamAccountName từ hôm nay (0/@ps.ProbationDays ngày)?">
+                        <button type="submit" class="btn btn-sm">Đếm lại thử việc từ hôm nay</button>
+                    </form>
+                }
             }
             else
             {

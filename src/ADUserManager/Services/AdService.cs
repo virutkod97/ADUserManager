@@ -66,6 +66,19 @@ public sealed class AdService : IAdService
             ? new PrincipalContext(ContextType.Domain, DomainOrNull, container, CtxOptions, _opt.Username, _opt.Password)
             : new PrincipalContext(ContextType.Domain, DomainOrNull, container, CtxOptions);
 
+    private static bool IsProtected(SearchResult r)
+    {
+        if (ProtectedAccounts.IsProtectedName(Str(r, "sAMAccountName"))) return true;
+        return r.Properties.Contains("objectSid") && r.Properties["objectSid"][0] is byte[] sid
+               && ProtectedAccounts.IsBuiltInAdminSid(new SecurityIdentifier(sid, 0).Value);
+    }
+
+    private void Guard(string sam)
+    {
+        if (ProtectedAccounts.IsProtectedName(sam) || (FindOne(sam) is { } r && IsProtected(r)))
+            throw new AdOperationException(ProtectedAccounts.Message);
+    }
+
     private static UserPrincipal FindUser(PrincipalContext ctx, string sam) =>
         UserPrincipal.FindByIdentity(ctx, IdentityType.SamAccountName, sam)
         ?? throw new AdOperationException($"Không tìm thấy tài khoản '{sam}'.");
@@ -265,7 +278,8 @@ public sealed class AdService : IAdService
         };
         using var results = s.FindAll();
         var list = new List<AdUser>();
-        foreach (SearchResult r in results) list.Add(Map(r));
+        foreach (SearchResult r in results)
+            if (!IsProtected(r)) list.Add(Map(r));
         return (IReadOnlyList<AdUser>)list.OrderBy(u => u.SamAccountName, StringComparer.OrdinalIgnoreCase).ToList();
     });
 
@@ -284,6 +298,7 @@ public sealed class AdService : IAdService
     {
         var r = FindOne(samAccountName);
         if (r is null) return null;
+        if (IsProtected(r)) throw new AdOperationException(ProtectedAccounts.Message);
         var u = Map(r);
         u.PrimaryGroupDn = PrimaryGroupOf(r);
         u.MemberOf = ReadMembership(samAccountName).MemberOf.OrderBy(g => g, StringComparer.OrdinalIgnoreCase).ToList();
@@ -384,6 +399,7 @@ public sealed class AdService : IAdService
 
     public void UpdateUser(string samAccountName, UpdateUserRequest req) => Run("cập nhật tài khoản", () =>
     {
+        Guard(samAccountName);
         using var ctx = Ctx();
         using var up = FindUser(ctx, samAccountName);
         up.GivenName = N(req.GivenName);
@@ -405,6 +421,7 @@ public sealed class AdService : IAdService
 
     public void DeleteUser(string samAccountName) => Run("xoá tài khoản", () =>
     {
+        Guard(samAccountName);
         using var ctx = Ctx();
         using var up = FindUser(ctx, samAccountName);
         up.Delete();
@@ -413,6 +430,7 @@ public sealed class AdService : IAdService
     public void ResetPassword(string samAccountName, string newPassword, bool mustChange, bool unlock) =>
         Run("đặt lại mật khẩu", () =>
         {
+            Guard(samAccountName);
             using var ctx = Ctx();
             using var up = FindUser(ctx, samAccountName);
             up.SetPassword(newPassword);
@@ -422,6 +440,7 @@ public sealed class AdService : IAdService
 
     public void SetEnabled(string samAccountName, bool enabled) => Run(enabled ? "kích hoạt tài khoản" : "vô hiệu hoá tài khoản", () =>
     {
+        Guard(samAccountName);
         using var ctx = Ctx();
         using var up = FindUser(ctx, samAccountName);
         up.Enabled = enabled;
@@ -430,6 +449,7 @@ public sealed class AdService : IAdService
 
     public void Unlock(string samAccountName) => Run("mở khoá tài khoản", () =>
     {
+        Guard(samAccountName);
         using var ctx = Ctx();
         using var up = FindUser(ctx, samAccountName);
         if (up.IsAccountLockedOut()) up.UnlockAccount();
@@ -437,6 +457,7 @@ public sealed class AdService : IAdService
 
     public void MoveUser(string samAccountName, string targetOuDn) => Run("di chuyển tài khoản sang OU mới", () =>
     {
+        Guard(samAccountName);
         using var ctx = Ctx();
         using var up = FindUser(ctx, samAccountName);
         if (string.Equals(DnHelper.Parent(up.DistinguishedName), targetOuDn, StringComparison.OrdinalIgnoreCase)) return;
@@ -454,6 +475,7 @@ public sealed class AdService : IAdService
     // Sửa trực tiếp thuộc tính member của group rồi đọc lại memberOf của tài khoản để xác nhận
     private void ChangeMembership(string sam, string groupDn, bool add)
     {
+        Guard(sam);
         var groupName = DnHelper.RdnValue(DnHelper.Split(groupDn)[0]);
         var (userDn, memberOf) = ReadMembership(sam);
         if (memberOf.Contains(groupDn) == add) return;
@@ -488,7 +510,10 @@ public sealed class AdService : IAdService
     }
 
     public IReadOnlyList<string> GetUserGroups(string samAccountName) => Run("đọc group của tài khoản", () =>
-        (IReadOnlyList<string>)ReadMembership(samAccountName).MemberOf.OrderBy(g => g, StringComparer.OrdinalIgnoreCase).ToList());
+    {
+        Guard(samAccountName);
+        return (IReadOnlyList<string>)ReadMembership(samAccountName).MemberOf.OrderBy(g => g, StringComparer.OrdinalIgnoreCase).ToList();
+    });
 
     private string? DnBySid(string sid) =>
         _dnBySid.TryGetValue(sid, out var cached) ? cached : LookupDnBySid(sid);
@@ -525,6 +550,7 @@ public sealed class AdService : IAdService
 
     public void SetPrimaryGroup(string samAccountName, string groupDn) => Run("đổi primary group", () =>
     {
+        Guard(samAccountName);
         var groupName = DnHelper.RdnValue(DnHelper.Split(groupDn)[0]);
         int token;
         using (var grp = Entry(groupDn))

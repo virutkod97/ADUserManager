@@ -52,8 +52,12 @@
                     <td>@i.Assignment.AssignedAt.ToLocalDisplay()</td>
                     <td>@i.Status.DaysElapsed / @i.Status.ProbationDays</td>
                     <td><partial name="_ProbationBadge" model="i.Status" /></td>
-                    <td class="right">
+                    <td class="right nowrap">
                         <a class="btn btn-sm @(i.Status.IsDue ? "btn-primary" : "")" href="/Users/Edit?sam=@Uri.EscapeDataString(i.Assignment.SamAccountName)#rule">Chuyển rule</a>
+                        <form method="post" asp-page-handler="ResetProbation" asp-route-sam="@i.Assignment.SamAccountName" class="inline"
+                              data-confirm="Đếm lại thử việc cho @i.Assignment.SamAccountName từ hôm nay (0/@i.Status.ProbationDays ngày)?">
+                            <button type="submit" class="btn btn-sm">Đếm lại thử việc</button>
+                        </form>
                     </td>
                 </tr>
             }

@@ -14,6 +14,7 @@ Website chạy dạng **Windows Service** trên máy chủ Active Directory, h�
 | **Đổi rule chính hàng loạt** | Ở danh sách Tài khoản, chọn rule chính cho nhiều dòng rồi bấm **Lưu** ở góc dưới phải: tài khoản chuyển sang OU của rule mới; lưu lại toàn bộ group hiện có (kể cả primary group), thêm group rule mới, đặt primary group theo rule mới, rồi **gỡ các group đã lưu** (trừ group do rule phân quyền cấp). Danh sách mặc định chỉ hiện tài khoản đang hoạt động. |
 | **Thêm / sửa / xoá tài khoản** | Tự sinh tên hiển thị và tên đăng nhập từ họ tên tiếng Việt (VD: *Nguyễn Đức Anh* → `anhnd`), chọn UPN suffix, thông tin phòng ban, chức danh, mã NV... Vô hiệu hoá/kích hoạt, mở khoá. |
 | **Reset mật khẩu** | Sinh mật khẩu ngẫu nhiên đủ độ phức tạp, tuỳ chọn bắt đổi mật khẩu lần đăng nhập tới, mở khoá tài khoản. |
+| **Bảo vệ administrator** | Tài khoản `administrator` / RID 500 bị ẩn và không thao tác được qua phần mềm (hard code). |
 | **Nhật ký thao tác** | Ghi lại ai làm gì, lúc nào, từ IP nào, thành công hay lỗi. |
 | **Giao diện sáng/tối** | Nút ☀/☾ ở góc dưới menu (và trang đăng nhập), nhớ lựa chọn theo trình duyệt. |
 | **Tự động cập nhật** | Kiểm tra GitHub Releases định kỳ, báo trên giao diện khi có bản mới; menu **Cập nhật → Cập nhật ngay** tải gói, kiểm tra SHA-256 và cài đè (giữ cấu hình, dữ liệu). |
@@ -113,6 +114,7 @@ Tự động cập nhật cần repo **public** (API GitHub không cần token) 
 - Khi tạo user theo rule hoặc chuyển rule, phần mềm lưu *thời điểm user vào rule* (bảng `Assignments`).
 - Nếu rule có tick **thử việc**, hạn = thời điểm vào rule + số ngày thử việc của rule.
 - Đến hạn: badge đỏ "Quá hạn thử việc" + banner nhắc chuyển rule. Bấm **Chuyển rule** → chọn rule chính thức → user được chuyển OU/group, cảnh báo biến mất.
+- Muốn gia hạn thử việc: bấm **Đếm lại thử việc** (Tổng quan hoặc trang Sửa) để đếm lại từ hôm nay.
 - Tài khoản tạo ngoài phần mềm có thể **gán rule** ở trang chi tiết tài khoản để bắt đầu theo dõi.
 
 ## Phát triển / chạy thử không cần AD

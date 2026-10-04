@@ -1,4 +1,5 @@
 using ADUserManager.Services;
+using Microsoft.AspNetCore.Mvc;
 
 namespace ADUserManager.Pages;
 
@@ -33,5 +34,19 @@ public class IndexModel : AppPageModel
             try { Names[i.Assignment.SamAccountName] = _ad.GetUser(i.Assignment.SamAccountName)?.DisplayName; }
             catch (Exception ex) { _log.LogWarning(ex, "Cannot read {Sam}", i.Assignment.SamAccountName); }
         }
+    }
+
+    public async Task<IActionResult> OnPostResetProbationAsync(string sam)
+    {
+        try
+        {
+            await _rules.ResetProbationAsync(sam);
+            FlashSuccess($"Đã đặt lại thời gian thử việc cho {sam}, bắt đầu đếm lại từ hôm nay.");
+        }
+        catch (AdOperationException ex)
+        {
+            FlashError(ex.Message);
+        }
+        return RedirectToPage();
     }
 }

@@ -277,3 +277,4 @@ th.sortable:hover { color: var(--text); }
 th.sortable::after { content: " ⇅"; opacity: .35; }
 th.sortable[aria-sort="ascending"]::after { content: " ▲"; opacity: 1; }
 th.sortable[aria-sort="descending"]::after { content: " ▼"; opacity: 1; }
+.reset-probation { margin: -6px 0 14px; }

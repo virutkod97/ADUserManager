@@ -172,6 +172,20 @@ public class EditModel : AppPageModel
         return RedirectToPage(null, null, new { sam }, "permissions");
     }
 
+    public async Task<IActionResult> OnPostResetProbationAsync(string sam)
+    {
+        try
+        {
+            await _rules.ResetProbationAsync(sam);
+            FlashSuccess("Đã đặt lại thời gian thử việc, bắt đầu đếm lại từ hôm nay.");
+        }
+        catch (AdOperationException ex)
+        {
+            FlashError(ex.Message);
+        }
+        return Back(sam);
+    }
+
     public async Task<IActionResult> OnPostRemoveRuleAsync(string sam)
     {
         await _rules.RemoveAssignmentAsync(sam);

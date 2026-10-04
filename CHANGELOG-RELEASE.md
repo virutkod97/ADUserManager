@@ -8,5 +8,8 @@
 - Giải nén bản mới và chạy lại `install.bat`. Cấu hình và dữ liệu được giữ nguyên.
 
 ## Thay đổi trong bản này
-- Bảng Tài khoản: bấm vào tiêu đề cột để sắp xếp A→Z, bấm lần nữa để Z→A (có mũi tên ▲/▼).
-  Cột Đăng nhập cuối sắp theo thời gian; ô trống (chưa đăng nhập, chưa gán rule) luôn nằm cuối; tên tiếng Việt sắp đúng thứ tự.
+- **Bảo vệ tài khoản administrator**: tài khoản `administrator` và tài khoản quản trị gốc của domain (RID 500, kể cả khi đã đổi tên)
+  bị ẩn khỏi trang Tài khoản và bị chặn mọi thao tác qua phần mềm (sửa, reset mật khẩu, xoá, vô hiệu hoá, đổi rule/group).
+  Vẫn đăng nhập phần mềm bằng tài khoản này được.
+- **Đếm lại thử việc**: nút "Đếm lại thử việc" ở trang Tổng quan và trang Sửa tài khoản, đặt ngày bắt đầu thử việc về hôm nay
+  (0/7 ngày) mà không đổi OU/group. Có ghi nhật ký.

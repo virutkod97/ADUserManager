@@ -135,6 +135,19 @@ public class RuleService
         await _db.SaveChangesAsync();
     }
 
+    // Đặt lại ngày bắt đầu thử việc = hôm nay (đếm lại từ 0), không đổi OU/group
+    public async Task ResetProbationAsync(string sam)
+    {
+        var a = await _db.Assignments.Include(x => x.Rule).FirstOrDefaultAsync(x => x.SamAccountName == sam)
+                ?? throw new AdOperationException($"Tài khoản '{sam}' chưa được gán rule.");
+        if (a.Rule is not { IsProbation: true }) throw new AdOperationException($"Rule '{a.Rule?.Name}' không phải rule thử việc.");
+        var old = a.AssignedAt;
+        a.AssignedAt = DateTime.UtcNow;
+        a.AssignedBy = _audit.CurrentActor;
+        await _db.SaveChangesAsync();
+        await _audit.LogAsync("User.ResetProbation", sam, $"Rule: {a.Rule.Name}; Ngày bắt đầu cũ: {old.ToLocalDisplay()}");
+    }
+
     public async Task RemoveAssignmentAsync(string sam)
     {
         var a = await _db.Assignments.FirstOrDefaultAsync(x => x.SamAccountName == sam);
