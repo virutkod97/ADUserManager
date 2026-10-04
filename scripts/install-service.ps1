@@ -57,7 +57,12 @@ try {
             }
             # exe có thể còn bị khoá vài giây sau khi service dừng
             for ($i = 1; ; $i++) {
-                try { Copy-Item $item.FullName $dest -Recurse -Force; break }
+                try {
+                    # Copy-Item thư mục vào thư mục đã tồn tại sẽ tạo thư mục lồng (wwwroot\wwwroot)
+                    if ($item.PSIsContainer -and (Test-Path $dest)) { Remove-Item $dest -Recurse -Force }
+                    Copy-Item $item.FullName $dest -Recurse -Force
+                    break
+                }
                 catch { if ($i -ge 15) { throw }; Start-Sleep -Seconds 2 }
             }
         }
