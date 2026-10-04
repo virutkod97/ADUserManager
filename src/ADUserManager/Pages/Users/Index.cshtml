@@ -117,9 +117,6 @@
 <form method="post" id="bulk-form" asp-page-handler="BulkRule" asp-route-q="@Model.Q" asp-route-rule="@Model.RuleFilter"
       class="bulk-bar" hidden>
     <div class="bulk-count"><strong data-bulk-count>0</strong> tài khoản đổi rule chính</div>
-    <label class="check"><input type="checkbox" name="moveOu" value="true" checked /> <span>Chuyển OU</span></label>
-    <label class="check"><input type="checkbox" name="addGroups" value="true" checked /> <span>Thêm group rule mới</span></label>
-    <label class="check"><input type="checkbox" name="removeOldGroups" value="true" checked /> <span>Gỡ group rule cũ</span></label>
     <div class="bulk-actions">
         <button type="button" class="btn" data-bulk-reset>Huỷ</button>
         <button type="submit" class="btn btn-primary">Lưu</button>

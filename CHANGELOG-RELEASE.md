@@ -8,7 +8,6 @@
 - Giải nén bản mới và chạy lại `install.bat`. Cấu hình và dữ liệu được giữ nguyên.
 
 ## Thay đổi trong bản này
-- **Đổi rule chính hàng loạt** ngay tại danh sách Tài khoản: mỗi dòng có ô chọn rule chính, dòng đã đổi được tô màu;
-  thanh **Lưu** ở góc dưới phải hiện số tài khoản thay đổi, tuỳ chọn chuyển OU / thêm group mới / gỡ group cũ, có nút **Huỷ**.
-  Rời trang khi còn thay đổi chưa lưu sẽ được hỏi lại.
-- Khung bảng tài khoản cao tối thiểu bằng màn hình, menu "⋯" không còn bị che khi lọc ra ít tài khoản.
+- Đơn giản hoá đổi rule chính hàng loạt: bỏ các ô tuỳ chọn. Chọn rule chính B cho tài khoản đang ở A rồi bấm **Lưu**
+  → tài khoản chuyển sang OU của B, bỏ group của A, thêm group của B. Group do rule phân quyền cấp được giữ nguyên.
+  Cần tuỳ chỉnh chi tiết thì vào **Sửa** từng tài khoản.

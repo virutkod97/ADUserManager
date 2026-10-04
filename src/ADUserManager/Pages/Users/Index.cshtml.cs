@@ -57,8 +57,7 @@ public class IndexModel : AppPageModel
 
     private IActionResult Back() => RedirectToPage(new { q = Q, rule = RuleFilter });
 
-    public async Task<IActionResult> OnPostBulkRuleAsync(
-        Dictionary<string, string?> rules, bool moveOu, bool addGroups, bool removeOldGroups)
+    public async Task<IActionResult> OnPostBulkRuleAsync(Dictionary<string, string?> rules)
     {
         var current = await _rules.GetAssignmentsAsync();
         var mainRules = (await _rules.GetRulesAsync()).Where(r => !r.IsPermission).ToDictionary(r => r.Id);
@@ -80,7 +79,7 @@ public class IndexModel : AppPageModel
         {
             try
             {
-                var warnings = await _rules.ChangeRuleAsync(sam, ruleId, moveOu, addGroups, removeOldGroups);
+                var warnings = await _rules.ChangeRuleAsync(sam, ruleId, moveOu: true, addGroups: true, removeOldGroups: true);
                 ok.Add($"{sam} → {mainRules[ruleId].Name}");
                 problems.AddRange(warnings.Select(w => $"{sam}: {w}"));
             }
