@@ -51,7 +51,7 @@ public class CreateModel : AppPageModel
         [Required(ErrorMessage = "Nhập mật khẩu")]
         public string Password { get; set; } = "";
 
-        public bool MustChangePassword { get; set; } = true;
+        public bool MustChangePassword { get; set; }
         public bool Enabled { get; set; } = true;
     }
 

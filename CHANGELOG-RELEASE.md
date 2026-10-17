@@ -8,8 +8,6 @@
 - Giải nén bản mới và chạy lại `install.bat`. Cấu hình và dữ liệu được giữ nguyên.
 
 ## Thay đổi trong bản này
-- **Bảo vệ tài khoản administrator**: tài khoản `administrator` và tài khoản quản trị gốc của domain (RID 500, kể cả khi đã đổi tên)
-  bị ẩn khỏi trang Tài khoản và bị chặn mọi thao tác qua phần mềm (sửa, reset mật khẩu, xoá, vô hiệu hoá, đổi rule/group).
-  Vẫn đăng nhập phần mềm bằng tài khoản này được.
-- **Đếm lại thử việc**: nút "Đếm lại thử việc" ở trang Tổng quan và trang Sửa tài khoản, đặt ngày bắt đầu thử việc về hôm nay
-  (0/7 ngày) mà không đổi OU/group. Có ghi nhật ký.
+- Tạo tài khoản: tên đăng nhập tự sinh bỏ phần tiền tố trước dấu "-" (VD "MKT - Dinh Thi Ngoc" + "Anh" → `anhdtn`);
+  tên hiển thị vẫn giữ nguyên tiền tố.
+- Tạo tài khoản: mặc định **không** tick "Bắt đổi mật khẩu ở lần đăng nhập đầu".

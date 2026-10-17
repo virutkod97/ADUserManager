@@ -187,9 +187,11 @@
     var strip = function (s) {
       return s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
     };
+    // "MKT - Dinh Thi Ngoc" -> "Dinh Thi Ngoc": bỏ tiền tố đứng trước dấu "-" cuối cùng
+    var afterDash = function (v) { var i = v.lastIndexOf('-'); return (i >= 0 ? v.substring(i + 1) : v).trim(); };
     var suggestSam = function () {
-      var g = strip(given.value.trim()).toLowerCase().replace(/[^a-z0-9]/g, '');
-      var initials = strip(surname.value.trim()).toLowerCase().split(/\s+/)
+      var g = strip(afterDash(given.value)).toLowerCase().replace(/[^a-z0-9]/g, '');
+      var initials = strip(afterDash(surname.value)).toLowerCase().split(/\s+/)
         .filter(Boolean).map(function (w) { return w[0]; }).join('').replace(/[^a-z0-9]/g, '');
       return (g + initials).substring(0, 20);
     };
