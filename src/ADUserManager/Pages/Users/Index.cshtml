@@ -40,7 +40,7 @@
 <section class="card">
     <div class="card-head">
         <span class="muted">
-            @Model.Users.Count tài khoản@(Model.ShowAll ? "" : " đang hoạt động")
+            @Model.Users.Count tài khoản@(Model.ShowAll || Model.RuleFilter == "due" ? "" : " đang hoạt động")
             @if (Model.HiddenDisabled > 0) { <text>· @Model.HiddenDisabled tài khoản vô hiệu hoá đang ẩn (<a href="?q=@Uri.EscapeDataString(Model.Q ?? "")&rule=@Model.RuleFilter&all=true">hiện</a>)</text> }
             @(Model.Truncated ? " (đã đạt giới hạn kết quả, hãy thu hẹp tìm kiếm)" : "")
         </span>

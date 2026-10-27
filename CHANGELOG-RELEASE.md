@@ -8,6 +8,5 @@
 - Giải nén bản mới và chạy lại `install.bat`. Cấu hình và dữ liệu được giữ nguyên.
 
 ## Thay đổi trong bản này
-- Tạo tài khoản: tên đăng nhập tự sinh bỏ phần tiền tố trước dấu "-" (VD "MKT - Dinh Thi Ngoc" + "Anh" → `anhdtn`);
-  tên hiển thị vẫn giữ nguyên tiền tố.
-- Tạo tài khoản: mặc định **không** tick "Bắt đổi mật khẩu ở lần đăng nhập đầu".
+- Sửa lỗi bộ lọc **Đến hạn chuyển rule** ở trang Tài khoản không hiện tài khoản thử việc quá hạn đã bị vô hiệu hoá
+  (bị chế độ "chỉ hiện tài khoản đang hoạt động" ẩn đi), gây lệch với số liệu ở Tổng quan và thanh cảnh báo.

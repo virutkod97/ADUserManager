@@ -50,7 +50,8 @@ public class IndexModel : AppPageModel
                 users = users.Where(u => Assignments.GetValueOrDefault(u.SamAccountName)?.RuleId == ruleId
                                          || (Permissions.GetValueOrDefault(u.SamAccountName)?.Any(p => p.RuleId == ruleId) ?? false));
             var list = users.ToList();
-            if (!ShowAll)
+            // Lọc "Đến hạn chuyển rule" luôn gồm cả tài khoản bị vô hiệu hoá để khớp với Tổng quan
+            if (!ShowAll && RuleFilter != "due")
             {
                 HiddenDisabled = list.Count(u => !u.Enabled);
                 list = list.Where(u => u.Enabled).ToList();
