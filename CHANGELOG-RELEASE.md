@@ -8,5 +8,6 @@
 - Giải nén bản mới và chạy lại `install.bat`. Cấu hình và dữ liệu được giữ nguyên.
 
 ## Thay đổi trong bản này
-- Sửa lỗi bộ lọc **Đến hạn chuyển rule** ở trang Tài khoản không hiện tài khoản thử việc quá hạn đã bị vô hiệu hoá
-  (bị chế độ "chỉ hiện tài khoản đang hoạt động" ẩn đi), gây lệch với số liệu ở Tổng quan và thanh cảnh báo.
+- Tài khoản thử việc **đã bị vô hiệu hoá không còn bị nhắc chuyển rule**: không tính vào danh sách và số liệu ở Tổng quan,
+  số trên menu, thanh cảnh báo, bộ lọc "Đến hạn chuyển rule", và không hiện nhãn "Quá hạn thử việc".
+  Kích hoạt lại thì cảnh báo hiện trở lại. (Hoàn tác thay đổi bộ lọc của bản 1.7.2.)

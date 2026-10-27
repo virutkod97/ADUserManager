@@ -13,6 +13,8 @@ public interface IAdService
     IReadOnlyList<AdUser> SearchUsers(string? query, string? ouDn = null);
     AdUser? GetUser(string samAccountName);
     bool UserExists(string samAccountName);
+    // sAMAccountName -> đang kích hoạt; tài khoản không tìm thấy thì không có trong kết quả
+    IReadOnlyDictionary<string, bool> GetEnabledStates(IEnumerable<string> samAccountNames);
 
     AdUser CreateUser(NewUserRequest request);
     void UpdateUser(string samAccountName, UpdateUserRequest request);

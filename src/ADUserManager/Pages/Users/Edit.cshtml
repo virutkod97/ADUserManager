@@ -3,7 +3,7 @@
 @{
     var u = Model.AdUser!;
     ViewData["Title"] = u.SamAccountName;
-    var ps = RuleService.GetProbationStatus(Model.Assignment);
+    var ps = u.Enabled ? RuleService.GetProbationStatus(Model.Assignment) : null;
     var samQ = Uri.EscapeDataString(u.SamAccountName);
 }
 <div class="page-head">

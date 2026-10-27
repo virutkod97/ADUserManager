@@ -315,6 +315,29 @@ public sealed class AdService : IAdService
         return u;
     });
 
+    public IReadOnlyDictionary<string, bool> GetEnabledStates(IEnumerable<string> samAccountNames) => Run("đọc trạng thái tài khoản", () =>
+    {
+        var result = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+        foreach (var chunk in samAccountNames.Distinct(StringComparer.OrdinalIgnoreCase).Chunk(50))
+        {
+            var or = string.Concat(chunk.Select(sam => $"(sAMAccountName={DnHelper.EscapeFilter(sam)})"));
+            using var root = Entry(DefaultNc);
+            using var s = new DirectorySearcher(root, $"(&(objectCategory=person)(objectClass=user)(|{or}))",
+                new[] { "sAMAccountName", "userAccountControl" })
+            {
+                PageSize = 500,
+                SearchScope = SearchScope.Subtree,
+            };
+            using var results = s.FindAll();
+            foreach (SearchResult r in results)
+            {
+                var uac = r.Properties.Contains("userAccountControl") ? Convert.ToInt32(r.Properties["userAccountControl"][0]) : 0;
+                if (Str(r, "sAMAccountName") is { } sam) result[sam] = (uac & 0x2) == 0;
+            }
+        }
+        return (IReadOnlyDictionary<string, bool>)result;
+    });
+
     public bool UserExists(string samAccountName) => Run("kiểm tra tài khoản", () => FindOne(samAccountName) is not null);
 
     public AdUser CreateUser(NewUserRequest req) => Run("tạo tài khoản", () =>

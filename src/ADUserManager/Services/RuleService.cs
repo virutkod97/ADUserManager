@@ -112,6 +112,18 @@ public class RuleService
     {
         var list = await _db.Assignments.AsNoTracking().Include(a => a.Rule)
             .Where(a => a.Rule!.IsProbation).ToListAsync();
+
+        // Tài khoản đã vô hiệu hoá thì không cần nhắc chuyển rule; không đọc được AD thì vẫn giữ để không mất cảnh báo
+        if (list.Count > 0)
+        {
+            try
+            {
+                var enabled = _ad.GetEnabledStates(list.Select(a => a.SamAccountName));
+                list = list.Where(a => !enabled.TryGetValue(a.SamAccountName, out var on) || on).ToList();
+            }
+            catch (AdOperationException) { }
+        }
+
         return list.Select(a => new ProbationItem(a, a.Rule!, GetProbationStatus(a)!))
             .OrderByDescending(i => i.Status.IsDue)
             .ThenBy(i => i.Status.DueAtUtc)

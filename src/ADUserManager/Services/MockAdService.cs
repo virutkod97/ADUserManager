@@ -124,6 +124,13 @@ public sealed class MockAdService : IAdService
         }
     }
 
+    public IReadOnlyDictionary<string, bool> GetEnabledStates(IEnumerable<string> samAccountNames)
+    {
+        lock (_lock)
+            return samAccountNames.Where(_users.ContainsKey).Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(x => x, x => _users[x].User.Enabled, StringComparer.OrdinalIgnoreCase);
+    }
+
     public bool UserExists(string samAccountName)
     {
         lock (_lock) return _users.ContainsKey(samAccountName);

@@ -45,13 +45,12 @@ public class IndexModel : AppPageModel
             if (RuleFilter == "none")
                 users = users.Where(u => !Assignments.ContainsKey(u.SamAccountName));
             else if (RuleFilter == "due")
-                users = users.Where(u => RuleService.GetProbationStatus(Assignments.GetValueOrDefault(u.SamAccountName))?.IsDue == true);
+                users = users.Where(u => u.Enabled && RuleService.GetProbationStatus(Assignments.GetValueOrDefault(u.SamAccountName))?.IsDue == true);
             else if (int.TryParse(RuleFilter, out var ruleId))
                 users = users.Where(u => Assignments.GetValueOrDefault(u.SamAccountName)?.RuleId == ruleId
                                          || (Permissions.GetValueOrDefault(u.SamAccountName)?.Any(p => p.RuleId == ruleId) ?? false));
             var list = users.ToList();
-            // Lọc "Đến hạn chuyển rule" luôn gồm cả tài khoản bị vô hiệu hoá để khớp với Tổng quan
-            if (!ShowAll && RuleFilter != "due")
+            if (!ShowAll)
             {
                 HiddenDisabled = list.Count(u => !u.Enabled);
                 list = list.Where(u => u.Enabled).ToList();
